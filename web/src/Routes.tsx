@@ -7,11 +7,22 @@
 // 'src/pages/HomePage/HomePage.js'         -> HomePage
 // 'src/pages/Admin/BooksPage/BooksPage.js' -> AdminBooksPage
 
-import { Router, Route } from '@redwoodjs/router'
+import { Route } from '@redwoodjs/router/dist/Route'
+import { Set } from '@redwoodjs/router/dist/Set'
+// @ts-expect-error - ESM issue. RW projects need to be ESM to properly pick up
+// on the types here
+import { Router } from '@redwoodjs/vite/Router'
 
-const Routes = () => {
+import NavigationLayout from 'src/layouts/NavigationLayout'
+import NotFoundPage from 'src/pages/NotFoundPage'
+
+const Routes = ({ location }: { location?: any }) => {
   return (
-    <Router>
+    <Router location={location}>
+      <Set wrap={NavigationLayout}>
+        <Route path="/" page={HomePage} name="home" />
+        <Route path="/about" page={AboutPage} name="about" />
+      </Set>
       <Route notfound page={NotFoundPage} />
     </Router>
   )

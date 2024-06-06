@@ -4,8 +4,8 @@
     "allowJs": true,
     "esModuleInterop": true,
     "target": "esnext",
-    "module": "esnext",
-    "moduleResolution": "node",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     "skipLibCheck": false,
     "rootDirs": [
       "./src",
@@ -38,7 +38,8 @@
     ],
     "types": [
       "jest",
-      "jest-dom"
+      "jest-dom",
+      "react/experimental"
     ],
     "jsx": "preserve"
   },
