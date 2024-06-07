@@ -2,6 +2,18 @@ import { RedwoodJob } from './RedwoodJob'
 
 jest.useFakeTimers().setSystemTime(new Date('2024-01-01'))
 
+describe('constructor', () => {
+  test('returns an instance of the job', () => {
+    const job = new RedwoodJob()
+    expect(job).toBeInstanceOf(RedwoodJob)
+  })
+
+  test('can set options for the job', () => {
+    const job = new RedwoodJob({ foo: 'bar' })
+    expect(job.options.foo).toEqual('bar')
+  })
+})
+
 describe('set()', () => {
   test('returns a job instance', () => {
     const job = RedwoodJob.set({ wait: 300 })
@@ -21,58 +33,51 @@ describe('set()', () => {
     expect(job.options.queue).toEqual(RedwoodJob.queue)
   })
 
-  test('can set a custom queue', () => {
+  test('can override the queue name set in the class itself', () => {
     const job = RedwoodJob.set({ foo: 'bar', queue: 'priority' })
 
     expect(job.options.queue).toEqual('priority')
   })
 })
 
-describe('performLater()', () => {
-  beforeEach(() => {
-    jest.clearAllMocks()
-  })
+describe('runAt', () => {
+  test('returns the current time if no options are set', () => {
+    const job = new RedwoodJob()
 
-  test('schedules the job', async () => {
-    const spy = jest.spyOn(RedwoodJob.prototype, 'schedule')
-
-    await RedwoodJob.performLater('SampleJob', 'foo', 'bar')
-
-    expect(spy).toHaveBeenCalledWith(['SampleJob', 'foo', 'bar'])
-  })
-
-  test('returns the properties of the created job', async () => {
-    const job = await RedwoodJob.performLater('SampleJob', 'foo', 'bar')
-
-    expect(job.handler).toEqual('SampleJob')
-    expect(job.arguments).toEqual(['foo', 'bar'])
     expect(job.runAt).toEqual(new Date())
-    expect(job.queue).toEqual(RedwoodJob.queue)
-  })
-})
-
-describe('chain set() and performLater()', () => {
-  test('sets options for the job and schedules it', async () => {
-    const job = RedwoodJob.set({}).performLater('SampleJob', 'foo', 'bar')
-
-    expect(job.handler).toEqual('SampleJob')
-    expect(job.arguments).toEqual(['foo', 'bar'])
-    expect(job.runAt).toEqual(new Date())
-    expect(job.queue).toEqual(RedwoodJob.queue)
   })
 
-  test('sets a job to run after a certain amount of time', async () => {
-    const job = RedwoodJob.set({ wait: 300 }).performLater('SampleJob')
+  test('returns a datetime `wait` seconds in the future', async () => {
+    const job = RedwoodJob.set({ wait: 300 })
 
     expect(job.runAt).toEqual(new Date(new Date() + 300 * 1000))
   })
 
-  test('sets a job to run at a specific time', async () => {
+  test('returns a datetime set to `waitUntil`', async () => {
     const futureDate = new Date(2030, 1, 2, 12, 34, 56)
     const job = RedwoodJob.set({
       waitUntil: futureDate,
-    }).performLater('SampleJob')
+    })
 
     expect(job.runAt).toEqual(futureDate)
+  })
+
+  test('returns any datetime set directly on the instance', () => {
+    const futureDate = new Date(2030, 1, 2, 12, 34, 56)
+    const job = new RedwoodJob()
+    job.runAt = futureDate
+
+    expect(job.runAt).toEqual(futureDate)
+  })
+})
+
+describe('performLater()', () => {
+  test('returns the properties of the scheduled job', async () => {
+    const job = await RedwoodJob.performLater('foo', 'bar')
+
+    expect(job.handler).toEqual('RedwoodJob')
+    expect(job.arguments).toEqual(['foo', 'bar'])
+    expect(job.runAt).toEqual(new Date())
+    expect(job.queue).toEqual(RedwoodJob.queue)
   })
 })
