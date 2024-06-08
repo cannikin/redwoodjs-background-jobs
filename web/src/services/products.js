@@ -14,6 +14,7 @@ export const updateProduct = async (id, params) => {
     ProductBackorderJob.performLater(product.id)
     // or with some options set for the job itself (wait 5 minutes to send)
     ProductBackorderJob.set({ wait: 300 }).performLater(product.id)
+    // or send at a specific time in the future
     ProductBackorderJob.set({
       waitUntil: new Date(2024, 7, 1, 12, 0, 0),
     }).performLater(product.id)
@@ -90,9 +91,11 @@ export const updateProduct = async (id, params) => {
 //
 //
 
-// Imports that feel like `db`. This may require a build step in order to
-// populate the `jobs` object with instances of all the available jobs, or
-// else we require people to that themselves in the jobs.js file.
+// This one sort of feels the same as using `db` or `logger`. This may require
+// a build step in order to populate the `jobs` object with instances of all the
+// available jobs, or else we require people to that themselves in the jobs.js
+// file. See the second example in web/src/jobs/jobs.js for what this would
+// look like.
 import { jobs } from 'src/lib/jobs'
 
 export const updateProduct = async (id, params) => {
