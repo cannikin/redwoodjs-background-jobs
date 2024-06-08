@@ -14,7 +14,9 @@ export const updateProduct = async (id, params) => {
     ProductBackorderJob.performLater(product.id)
     // or with some options set for the job itself (wait 5 minutes to send)
     ProductBackorderJob.set({ wait: 300 }).performLater(product.id)
-    ProductBackorderJob.set({ waitUntil: new Date(2024, 7, 1, 12, 0, 0) }).performLater(product.id)
+    ProductBackorderJob.set({
+      waitUntil: new Date(2024, 7, 1, 12, 0, 0),
+    }).performLater(product.id)
   }
 
   return product
@@ -66,7 +68,7 @@ export const updateProduct = async (id, params) => {
 // `performLater` along any arguments that were needed
 //
 // When the job is executed, the function is called directly
-import { performLater } frapom '@redwoodjs/jobs'
+import { performLater } from '@redwoodjs/jobs'
 
 export const updateProduct = async (id, params) => {
   //
@@ -82,6 +84,27 @@ export const updateProduct = async (id, params) => {
   return product
 }
 
+//
+//
+//
+//
+//
 
+// Imports that feel like `db`. This may require a build step in order to
+// populate the `jobs` object with instances of all the available jobs, or
+// else we require people to that themselves in the jobs.js file.
+import { jobs } from 'src/lib/jobs'
 
-// Or maybe we provide both interfaces?
+export const updateProduct = async (id, params) => {
+  //
+  // product update stuff...
+  //
+
+  if (product.inventory > 0) {
+    jobs.productBackorder.performLater(product.id)
+    // or same args/options structure as above
+    jobs.productBackorder.set({ wait: 300 }).performLater(product.id)
+  }
+
+  return product
+}
