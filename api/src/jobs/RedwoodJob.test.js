@@ -131,7 +131,9 @@ describe('performLater()', () => {
   test('returns the properties of the scheduled job', async () => {
     const job = await RedwoodJob.performLater('foo', 'bar')
 
-    expect(job.handler).toEqual({ class: 'RedwoodJob', args: ['foo', 'bar'] })
+    expect(job.handler).toEqual(
+      JSON.stringify({ class: 'RedwoodJob', args: ['foo', 'bar'] })
+    )
     expect(job.runAt).toEqual(new Date())
     expect(job.queue).toEqual(RedwoodJob.queue)
   })

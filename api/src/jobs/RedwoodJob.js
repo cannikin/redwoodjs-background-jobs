@@ -1,3 +1,5 @@
+import { db } from 'src/lib/db'
+
 export class RedwoodJob {
   // The default queue for all jobs
   static queue = 'default'
@@ -106,12 +108,15 @@ export class RedwoodJob {
   // Can't be called directly, the public interface is `performLater()`
   async #schedule(args) {
     // TODO: Actually schedule the job with the adapter
+    const job = await db.backgroundJob.create({
+      data: {
+        handler: JSON.stringify(this.#handler(args)),
+        runAt: this.runAt,
+        queue: this.queue,
+        priority: this.priority,
+      },
+    })
 
-    return {
-      handler: this.#handler(args),
-      runAt: this.runAt,
-      queue: this.queue,
-      priority: this.priority,
-    }
+    return job
   }
 }
