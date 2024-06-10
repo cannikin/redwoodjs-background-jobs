@@ -12,7 +12,7 @@ export class RedwoodJob {
     return new this().#schedule(args)
   }
 
-  // Class method to runs the job immediately in the current process
+  // Class method to run the job immediately in the current process
   //   const result = RedwoodJob.performNow('foo', 'bar')
   static performNow(...args) {
     return new this().performNow(...args)
@@ -44,7 +44,7 @@ export class RedwoodJob {
     return this.perform(...args)
   }
 
-  handler(args) {
+  #handler(args) {
     return {
       class: this.constructor.name,
       args: [...args],
@@ -58,36 +58,40 @@ export class RedwoodJob {
 
   // Determines the name of the queue
   get queue() {
-    return this._queue || this.options?.queue || RedwoodJob.queue
+    return this.options?.queue || RedwoodJob.queue
   }
 
   // Set the name of the queue directly on an instance of a job
   set queue(value) {
-    this._queue = value
+    this.options = Object.assign(this.options || {}, { queue: value })
   }
 
   // Determines the priority of the job
   get priority() {
-    return this._priority || this.options?.priority || RedwoodJob.priority
+    return this.options?.priority || RedwoodJob.priority
   }
 
   set priority(value) {
-    this._priority = value
+    this.options = Object.assign(this.options || {}, {
+      priority: value,
+    })
   }
 
   // Determines when the job should run. If no options, runs as soon as possible
   // Otherwise, can set the number of seconds to wait with `wait` or a run at
   // a specific time with `waitUntil`.
   get runAt() {
-    if (!this._runAt) {
-      this._runAt = this.options?.wait
-        ? new Date(new Date() + this.options.wait * 1000)
-        : this.options?.waitUntil
-          ? this.options.waitUntil
-          : new Date()
+    if (!this.options?.runAt) {
+      this.options = Object.assign(this.options || {}, {
+        runAt: this.options?.wait
+          ? new Date(new Date() + this.options.wait * 1000)
+          : this.options?.waitUntil
+            ? this.options.waitUntil
+            : new Date(),
+      })
     }
 
-    return this._runAt
+    return this.options.runAt
   }
 
   // Set the runAt time on a job directly:
@@ -95,7 +99,7 @@ export class RedwoodJob {
   //   job.runAt = new Date(2030, 1, 2, 12, 34, 56)
   //   job.performLater()
   set runAt(value) {
-    this._runAt = value
+    this.options = Object.assign(this.options || {}, { runAt: value })
   }
 
   // Schedules a job with the appropriate adapter, returns the schedule details.
@@ -104,7 +108,7 @@ export class RedwoodJob {
     // TODO: Actually schedule the job with the adapter
 
     return {
-      handler: this.handler(args),
+      handler: this.#handler(args),
       runAt: this.runAt,
       queue: this.queue,
       priority: this.priority,

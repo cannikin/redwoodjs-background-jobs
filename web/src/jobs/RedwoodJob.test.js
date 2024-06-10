@@ -59,13 +59,13 @@ describe('get runAt()', () => {
     expect(job.runAt).toEqual(new Date())
   })
 
-  test('returns a datetime `wait` seconds in the future', async () => {
+  test('returns a datetime `wait` seconds in the future if option set', async () => {
     const job = RedwoodJob.set({ wait: 300 })
 
     expect(job.runAt).toEqual(new Date(new Date() + 300 * 1000))
   })
 
-  test('returns a datetime set to `waitUntil`', async () => {
+  test('returns a datetime set to `waitUntil` if option set', async () => {
     const futureDate = new Date(2030, 1, 2, 12, 34, 56)
     const job = RedwoodJob.set({
       waitUntil: futureDate,
@@ -138,6 +138,10 @@ describe('performLater()', () => {
 })
 
 describe('instance performNow()', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+  })
+
   test('invokes the perform() function immediately', async () => {
     class TestJob extends RedwoodJob {
       async perform() {
@@ -154,6 +158,10 @@ describe('instance performNow()', () => {
 })
 
 describe('static performNow()', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+  })
+
   test('invokes the perform() function immediately', async () => {
     class TestJob extends RedwoodJob {
       async perform() {
