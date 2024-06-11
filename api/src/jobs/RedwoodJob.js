@@ -1,3 +1,11 @@
+// Base class for all jobs, providing a common interface for scheduling jobs.
+// At a minimum, you must implement the `perform` method in your job.
+
+import {
+  RedwoodJobPerformNotImplementedError,
+  RedwoodJobNoAdapterError,
+} from './errors'
+
 export class RedwoodJob {
   // The default queue for all jobs
   static queue = 'default'
@@ -9,8 +17,9 @@ export class RedwoodJob {
   // The adapter to use for scheduling jobs
   static adapter
 
+  // Configure all jobs to use a specific adapter
   static config(options) {
-    if (options?.adapter) {
+    if (options && Object.keys(options).includes('adapter')) {
       this.adapter = options.adapter
     }
   }
@@ -38,9 +47,6 @@ export class RedwoodJob {
   // automatically by .set() or .performLater()
   constructor(options) {
     this.options = options
-    if (RedwoodJob.adapter === undefined) {
-      throw new Error('No adapter configured for RedwoodJob')
-    }
   }
 
   // Instance method to schedule a job to run later
@@ -58,7 +64,7 @@ export class RedwoodJob {
 
   // Must be implemented by the subclass
   perform() {
-    throw new Error('You must implement the `perform` method in your job class')
+    throw new RedwoodJobPerformNotImplementedError()
   }
 
   // Determines the name of the queue
@@ -110,6 +116,10 @@ export class RedwoodJob {
   // Schedules a job with the appropriate adapter, returns the schedule details.
   // Can't be called directly, the public interface is `performLater()`
   #schedule(args) {
+    if (!RedwoodJob.adapter) {
+      throw new RedwoodJobNoAdapterError()
+    }
+
     return RedwoodJob.adapter.schedule({
       handler: this.constructor.name,
       args: args,

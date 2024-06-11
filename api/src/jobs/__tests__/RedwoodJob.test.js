@@ -1,3 +1,7 @@
+import {
+  RedwoodJobNoAdapterError,
+  RedwoodJobPerformNotImplementedError,
+} from '../errors'
 import { RedwoodJob } from '../RedwoodJob'
 
 jest.useFakeTimers().setSystemTime(new Date('2024-01-01'))
@@ -136,18 +140,50 @@ describe('get priority()', () => {
 })
 
 describe('performLater()', () => {
-  beforeEach(() => {
-    RedwoodJob.config({
-      adapter: jest.fn(),
-    })
+  test('throws an error if no adapter is configured', () => {
+    RedwoodJob.config({ adapter: undefined })
+
+    const job = new RedwoodJob()
+
+    expect(() => job.performLater('foo', 'bar')).toThrow(
+      RedwoodJobNoAdapterError
+    )
   })
 
-  test('schedules a job with the adapter', () => {})
+  test('calls the `schedule` function on the adapter', () => {
+    class TestJob extends RedwoodJob {
+      async perform() {
+        return 'done'
+      }
+    }
+    const mockAdapter = { schedule: jest.fn() }
+    RedwoodJob.config({ adapter: mockAdapter })
+    const spy = jest.spyOn(mockAdapter, 'schedule')
+
+    new TestJob().performLater('foo', 'bar')
+
+    expect(spy).toHaveBeenCalledWith({
+      handler: 'TestJob',
+      args: ['foo', 'bar'],
+      queue: 'default',
+      priority: 50,
+      runAt: new Date(),
+    })
+  })
 })
 
 describe('instance performNow()', () => {
   beforeEach(() => {
     jest.clearAllMocks()
+  })
+
+  test('throws an error if perform() function is not implemented', async () => {
+    class TestJob extends RedwoodJob {}
+    const job = new TestJob()
+
+    expect(() => job.performNow('foo', 'bar')).toThrow(
+      RedwoodJobPerformNotImplementedError
+    )
   })
 
   test('invokes the perform() function immediately', async () => {
@@ -189,8 +225,6 @@ describe('perform()', () => {
   test('throws an error if not implemented', () => {
     const job = new RedwoodJob()
 
-    expect(() => job.perform()).toThrow(
-      'You must implement the `perform` method in your job class'
-    )
+    expect(() => job.perform()).toThrow(RedwoodJobPerformNotImplementedError)
   })
 })
