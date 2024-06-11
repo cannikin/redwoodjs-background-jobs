@@ -4,12 +4,14 @@
 // Any object passed to the constructor is saved in `this.options` and should
 // be used to configure your custom adapter.
 
+import { ScheduleNotImplementedError } from './errors'
+
 export class Adapter {
   constructor(options) {
     this.options = options
   }
 
   schedule() {
-    throw new Error('You must implement the `schedule` method in your adapter')
+    throw new ScheduleNotImplementedError()
   }
 }

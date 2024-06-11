@@ -1,7 +1,4 @@
-import {
-  RedwoodJobNoAdapterError,
-  RedwoodJobPerformNotImplementedError,
-} from '../errors'
+import * as errors from '../errors'
 import { RedwoodJob } from '../RedwoodJob'
 
 jest.useFakeTimers().setSystemTime(new Date('2024-01-01'))
@@ -146,7 +143,7 @@ describe('performLater()', () => {
     const job = new RedwoodJob()
 
     expect(() => job.performLater('foo', 'bar')).toThrow(
-      RedwoodJobNoAdapterError
+      errors.AdapterNotConfiguredError
     )
   })
 
@@ -182,7 +179,7 @@ describe('instance performNow()', () => {
     const job = new TestJob()
 
     expect(() => job.performNow('foo', 'bar')).toThrow(
-      RedwoodJobPerformNotImplementedError
+      errors.PerformNotImplementedError
     )
   })
 
@@ -225,6 +222,6 @@ describe('perform()', () => {
   test('throws an error if not implemented', () => {
     const job = new RedwoodJob()
 
-    expect(() => job.perform()).toThrow(RedwoodJobPerformNotImplementedError)
+    expect(() => job.perform()).toThrow(errors.PerformNotImplementedError)
   })
 })

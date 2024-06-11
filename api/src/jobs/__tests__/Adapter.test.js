@@ -1,4 +1,5 @@
 import { Adapter } from '../Adapter'
+import * as errors from '../errors'
 
 describe('constructor', () => {
   test('initializing the adapter saves options', () => {
@@ -12,8 +13,6 @@ describe('schedule()', () => {
   test('throws an error if not implemented', () => {
     const adapter = new Adapter({})
 
-    expect(() => adapter.schedule()).toThrow(
-      'You must implement the `schedule` method in your adapter'
-    )
+    expect(() => adapter.schedule()).toThrow(errors.ScheduleNotImplementedError)
   })
 })

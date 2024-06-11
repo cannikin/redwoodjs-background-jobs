@@ -1,10 +1,7 @@
 // Base class for all jobs, providing a common interface for scheduling jobs.
 // At a minimum, you must implement the `perform` method in your job.
 
-import {
-  RedwoodJobPerformNotImplementedError,
-  RedwoodJobNoAdapterError,
-} from './errors'
+import { AdapterNotConfiguredError, PerformNotImplementedError } from './errors'
 
 export class RedwoodJob {
   // The default queue for all jobs
@@ -64,7 +61,7 @@ export class RedwoodJob {
 
   // Must be implemented by the subclass
   perform() {
-    throw new RedwoodJobPerformNotImplementedError()
+    throw new PerformNotImplementedError()
   }
 
   // Determines the name of the queue
@@ -117,7 +114,7 @@ export class RedwoodJob {
   // Can't be called directly, the public interface is `performLater()`
   #schedule(args) {
     if (!RedwoodJob.adapter) {
-      throw new RedwoodJobNoAdapterError()
+      throw new AdapterNotConfiguredError()
     }
 
     return RedwoodJob.adapter.schedule({
