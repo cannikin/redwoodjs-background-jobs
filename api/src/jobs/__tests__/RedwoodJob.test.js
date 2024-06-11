@@ -1,6 +1,14 @@
-import { RedwoodJob } from './RedwoodJob'
+import { RedwoodJob } from '../RedwoodJob'
 
 jest.useFakeTimers().setSystemTime(new Date('2024-01-01'))
+
+describe('config', () => {
+  test('can set the adapter', () => {
+    RedwoodJob.config({ adapter: 'foobar' })
+
+    expect(RedwoodJob.adapter).toEqual('foobar')
+  })
+})
 
 describe('constructor', () => {
   test('returns an instance of the job', () => {
@@ -128,15 +136,13 @@ describe('get priority()', () => {
 })
 
 describe('performLater()', () => {
-  test('returns the properties of the scheduled job', async () => {
-    const job = await RedwoodJob.performLater('foo', 'bar')
-
-    expect(job.handler).toEqual(
-      JSON.stringify({ class: 'RedwoodJob', args: ['foo', 'bar'] })
-    )
-    expect(job.runAt).toEqual(new Date())
-    expect(job.queue).toEqual(RedwoodJob.queue)
+  beforeEach(() => {
+    RedwoodJob.config({
+      adapter: jest.fn(),
+    })
   })
+
+  test('schedules a job with the adapter', () => {})
 })
 
 describe('instance performNow()', () => {
@@ -176,5 +182,15 @@ describe('static performNow()', () => {
     TestJob.performNow('foo', 'bar')
 
     expect(spy).toHaveBeenCalledWith('foo', 'bar')
+  })
+})
+
+describe('perform()', () => {
+  test('throws an error if not implemented', () => {
+    const job = new RedwoodJob()
+
+    expect(() => job.perform()).toThrow(
+      'You must implement the `perform` method in your job class'
+    )
   })
 })

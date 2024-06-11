@@ -1,5 +1,3 @@
-import { db } from 'src/lib/db'
-
 export class RedwoodJob {
   // The default queue for all jobs
   static queue = 'default'
@@ -7,6 +5,15 @@ export class RedwoodJob {
   // The default priority for all jobs
   // Assumes a range of 1 - 100, 1 being highest priority
   static priority = 50
+
+  // The adapter to use for scheduling jobs
+  static adapter
+
+  static config(options) {
+    if (options?.adapter) {
+      this.adapter = options.adapter
+    }
+  }
 
   // Class method to schedule a job to run later
   //   const scheduleDetails = RedwoodJob.performLater('foo', 'bar')
@@ -31,6 +38,9 @@ export class RedwoodJob {
   // automatically by .set() or .performLater()
   constructor(options) {
     this.options = options
+    if (RedwoodJob.adapter === undefined) {
+      throw new Error('No adapter configured for RedwoodJob')
+    }
   }
 
   // Instance method to schedule a job to run later
@@ -44,13 +54,6 @@ export class RedwoodJob {
   //   const result = RedwoodJob.performNow('foo', 'bar')
   performNow(...args) {
     return this.perform(...args)
-  }
-
-  #handler(args) {
-    return {
-      class: this.constructor.name,
-      args: [...args],
-    }
   }
 
   // Must be implemented by the subclass
@@ -106,17 +109,13 @@ export class RedwoodJob {
 
   // Schedules a job with the appropriate adapter, returns the schedule details.
   // Can't be called directly, the public interface is `performLater()`
-  async #schedule(args) {
-    // TODO: Actually schedule the job with the adapter
-    const job = await db.backgroundJob.create({
-      data: {
-        handler: JSON.stringify(this.#handler(args)),
-        runAt: this.runAt,
-        queue: this.queue,
-        priority: this.priority,
-      },
+  #schedule(args) {
+    return RedwoodJob.adapter.schedule({
+      handler: this.constructor.name,
+      args: args,
+      runAt: this.runAt,
+      queue: this.queue,
+      priority: this.priority,
     })
-
-    return job
   }
 }
