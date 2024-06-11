@@ -66,7 +66,7 @@ export class RedwoodJob {
 
   // Determines the name of the queue
   get queue() {
-    return this.options?.queue || RedwoodJob.queue
+    return this.options?.queue || this.constructor.queue
   }
 
   // Set the name of the queue directly on an instance of a job
@@ -76,7 +76,7 @@ export class RedwoodJob {
 
   // Determines the priority of the job
   get priority() {
-    return this.options?.priority || RedwoodJob.priority
+    return this.options?.priority || this.constructor.priority
   }
 
   set priority(value) {
@@ -113,11 +113,11 @@ export class RedwoodJob {
   // Schedules a job with the appropriate adapter, returns the schedule details.
   // Can't be called directly, the public interface is `performLater()`
   #schedule(args) {
-    if (!RedwoodJob.adapter) {
+    if (!this.constructor.adapter) {
       throw new AdapterNotConfiguredError()
     }
 
-    return RedwoodJob.adapter.schedule({
+    return this.constructor.adapter.schedule({
       handler: this.constructor.name,
       args: args,
       runAt: this.runAt,

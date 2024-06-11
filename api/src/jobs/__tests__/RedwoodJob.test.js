@@ -3,15 +3,28 @@ import { RedwoodJob } from '../RedwoodJob'
 
 jest.useFakeTimers().setSystemTime(new Date('2024-01-01'))
 
-describe('config', () => {
+describe('static config', () => {
   test('can set the adapter', () => {
-    RedwoodJob.config({ adapter: 'foobar' })
+    const adapter = { schedule: jest.fn() }
 
-    expect(RedwoodJob.adapter).toEqual('foobar')
+    RedwoodJob.config({ adapter })
+
+    expect(RedwoodJob.adapter).toEqual(adapter)
+  })
+
+  test('can explictly set the adapter to falsy values for testing', () => {
+    RedwoodJob.config({ adapter: null })
+    expect(RedwoodJob.adapter).toBeNull()
+
+    RedwoodJob.config({ adapter: undefined })
+    expect(RedwoodJob.adapter).toBeUndefined()
+
+    RedwoodJob.config({ adapter: false })
+    expect(RedwoodJob.adapter).toEqual(false)
   })
 })
 
-describe('constructor', () => {
+describe('constructor()', () => {
   test('returns an instance of the job', () => {
     const job = new RedwoodJob()
     expect(job).toBeInstanceOf(RedwoodJob)
@@ -136,7 +149,46 @@ describe('get priority()', () => {
   })
 })
 
-describe('performLater()', () => {
+describe('static performLater()', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+  })
+
+  test('throws an error if no adapter is configured', () => {
+    RedwoodJob.config({ adapter: undefined })
+
+    expect(() => RedwoodJob.performLater('foo', 'bar')).toThrow(
+      errors.AdapterNotConfiguredError
+    )
+  })
+
+  test('calls the `schedule` function on the adapter', () => {
+    class TestJob extends RedwoodJob {
+      async perform() {
+        return 'done'
+      }
+    }
+    const mockAdapter = { schedule: jest.fn() }
+    RedwoodJob.config({ adapter: mockAdapter })
+    const spy = jest.spyOn(mockAdapter, 'schedule')
+
+    TestJob.performLater('foo', 'bar')
+
+    expect(spy).toHaveBeenCalledWith({
+      handler: 'TestJob',
+      args: ['foo', 'bar'],
+      queue: 'default',
+      priority: 50,
+      runAt: new Date(),
+    })
+  })
+})
+
+describe('instance performLater()', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+  })
+
   test('throws an error if no adapter is configured', () => {
     RedwoodJob.config({ adapter: undefined })
 
@@ -169,6 +221,26 @@ describe('performLater()', () => {
   })
 })
 
+describe('static performNow()', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+  })
+
+  test('invokes the perform() function immediately', async () => {
+    class TestJob extends RedwoodJob {
+      async perform() {
+        return 'done'
+      }
+    }
+
+    const spy = jest.spyOn(TestJob.prototype, 'perform')
+
+    TestJob.performNow('foo', 'bar')
+
+    expect(spy).toHaveBeenCalledWith('foo', 'bar')
+  })
+})
+
 describe('instance performNow()', () => {
   beforeEach(() => {
     jest.clearAllMocks()
@@ -198,30 +270,44 @@ describe('instance performNow()', () => {
   })
 })
 
-describe('static performNow()', () => {
-  beforeEach(() => {
-    jest.clearAllMocks()
-  })
-
-  test('invokes the perform() function immediately', async () => {
-    class TestJob extends RedwoodJob {
-      async perform() {
-        return 'done'
-      }
-    }
-
-    const spy = jest.spyOn(TestJob.prototype, 'perform')
-
-    TestJob.performNow('foo', 'bar')
-
-    expect(spy).toHaveBeenCalledWith('foo', 'bar')
-  })
-})
-
 describe('perform()', () => {
   test('throws an error if not implemented', () => {
     const job = new RedwoodJob()
 
     expect(() => job.perform()).toThrow(errors.PerformNotImplementedError)
+  })
+})
+
+describe('subclasses', () => {
+  test('can set their own default queue', () => {
+    class MailerJob extends RedwoodJob {
+      static queue = 'mailers'
+    }
+
+    // class access
+    expect(MailerJob.queue).toEqual('mailers')
+    expect(RedwoodJob.queue).toEqual('default')
+
+    // instance access
+    const mailerJob = new MailerJob()
+    const redwoodJob = new RedwoodJob()
+    expect(mailerJob.queue).toEqual('mailers')
+    expect(redwoodJob.queue).toEqual('default')
+  })
+
+  test('can set their own default priority', () => {
+    class PriorityJob extends RedwoodJob {
+      static priority = 10
+    }
+
+    // class access
+    expect(PriorityJob.priority).toEqual(10)
+    expect(RedwoodJob.priority).toEqual(50)
+
+    // instance access
+    const priorityJob = new PriorityJob()
+    const redwoodJob = new RedwoodJob()
+    expect(priorityJob.priority).toEqual(10)
+    expect(redwoodJob.priority).toEqual(50)
   })
 })
