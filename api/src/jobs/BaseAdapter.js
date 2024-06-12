@@ -6,7 +6,7 @@
 
 import { ScheduleNotImplementedError } from './errors'
 
-export class Adapter {
+export class BaseAdapter {
   constructor(options) {
     this.options = options
   }

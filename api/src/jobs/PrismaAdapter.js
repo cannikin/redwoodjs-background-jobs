@@ -16,18 +16,18 @@
 //     updatedAt DateTime  @updatedAt
 //   }
 //
-// Initialize this adapter passing a `dbAccessor` which is the property on an
+// Initialize this adapter passing an `accessor` which is the property on an
 // instance of PrismaClient that points to the table thats stores the jobs. In
-// the above schema, PrismaClient will create a `backgroundJob` property. This
-// is what you pass an option to the adapter:
+// the above schema, PrismaClient will create a `backgroundJob` property on
+// Redwood's `db` instance:
 //
 //   import { db } from 'src/lib/db'
 //   const adapter = new PrismaAdapter({ accessor: db.backgroundJob })
 //   RedwoodJob.config({ adapter })
 
-import { Adapter } from './Adapter'
+import { BaseAdapter } from './BaseAdapter'
 
-export class PrismaAdapter extends Adapter {
+export class PrismaAdapter extends BaseAdapter {
   // Schedules a job by creating a new record in a `BackgroundJob` table
   // (or whatever the accessor is configured to point to).
   schedule({ handler, args, runAt, queue, priority }) {
