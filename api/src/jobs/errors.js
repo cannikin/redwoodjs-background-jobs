@@ -10,7 +10,6 @@ export class RedwoodJobError extends Error {
 export class AdapterNotConfiguredError extends RedwoodJobError {
   constructor() {
     super('No adapter configured for RedwoodJob')
-    this.name = this.constructor.name
   }
 }
 
@@ -18,7 +17,6 @@ export class AdapterNotConfiguredError extends RedwoodJobError {
 export class PerformNotImplementedError extends RedwoodJobError {
   constructor() {
     super('You must implement the `perform` method in your job class')
-    this.name = this.constructor.name
   }
 }
 
@@ -26,19 +24,28 @@ export class PerformNotImplementedError extends RedwoodJobError {
 export class ScheduleNotImplementedError extends RedwoodJobError {
   constructor() {
     super('You must implement the `schedule` method in your adapter')
-    this.name = this.constructor.name
   }
 }
 
-export class SchedulingError extends RedwoodJobError {
+// Parent class for any job where we want to wrap the underlying error in our
+// own. Use by extending this class and passing the original error to the
+// constructor:
+//
+// try {
+//   throw new Error('Generic error')
+// } catch (e) {
+//   throw new RethrowJobError('Custom Error Message', e)
+// }
+export class RethrownJobError extends RedwoodJobError {
   constructor(message, error) {
     super(message)
 
     if (!error) {
-      throw new Error('SchedulingError requires a message and error')
+      throw new Error(
+        'RethrownJobError requires a message and existing error object'
+      )
     }
 
-    this.name = this.constructor.name
     this.original_error = error
     this.stack_before_rethrow = this.stack
 
@@ -50,5 +57,19 @@ export class SchedulingError extends RedwoodJobError {
         .join('\n') +
       '\n' +
       error.stack
+  }
+}
+
+// Thrown when there is an error scheduling a job, wraps the underlying error
+export class SchedulingError extends RethrownJobError {
+  constructor(message, error) {
+    super(message, error)
+  }
+}
+
+// Thrown when there is an error performing a job, wraps the underlying error
+export class PerformError extends RethrownJobError {
+  constructor(message, error) {
+    super(message, error)
   }
 }

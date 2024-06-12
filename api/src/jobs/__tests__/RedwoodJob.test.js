@@ -374,7 +374,7 @@ describe('instance performNow()', () => {
     class TestJob extends RedwoodJob {}
     const job = new TestJob()
 
-    expect(() => job.performNow('foo', 'bar')).toThrow(
+    await expect(job.performNow('foo', 'bar')).rejects.toThrow(
       errors.PerformNotImplementedError
     )
   })
@@ -406,9 +406,31 @@ describe('instance performNow()', () => {
 
     const spy = jest.spyOn(TestJob.prototype, 'perform')
 
-    new TestJob().performNow('foo', 'bar')
+    await new TestJob().performNow('foo', 'bar')
 
     expect(spy).toHaveBeenCalledWith('foo', 'bar')
+  })
+
+  test('catches any errors thrown during perform and throws custom error', async () => {
+    class TestJob extends RedwoodJob {
+      async perform() {
+        throw new Error('Could not perform')
+      }
+    }
+    const mockAdapter = {
+      schedule: jest.fn(() => {
+        throw new Error('Could not schedule')
+      }),
+    }
+    RedwoodJob.config({ adapter: mockAdapter })
+
+    try {
+      await new TestJob().performNow('foo', 'bar')
+    } catch (e) {
+      expect(e).toBeInstanceOf(errors.PerformError)
+      expect(e.message).toEqual('[TestJob] exception when running job')
+      expect(e.original_error.message).toEqual('Could not perform')
+    }
   })
 })
 

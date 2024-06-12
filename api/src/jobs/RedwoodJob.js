@@ -5,6 +5,7 @@ import {
   AdapterNotConfiguredError,
   PerformNotImplementedError,
   SchedulingError,
+  PerformError,
 } from './errors'
 
 export class RedwoodJob {
@@ -80,10 +81,21 @@ export class RedwoodJob {
 
   // Instance method to runs the job immediately in the current process
   //   const result = RedwoodJob.performNow('foo', 'bar')
-  performNow(...args) {
+  async performNow(...args) {
     this.#log({ level: 'info', message: `running now`, args })
 
-    return this.perform(...args)
+    try {
+      return await this.perform(...args)
+    } catch (e) {
+      if (e instanceof PerformNotImplementedError) {
+        throw e
+      } else {
+        throw new PerformError(
+          `[${this.constructor.name}] exception when running job`,
+          e
+        )
+      }
+    }
   }
 
   // Must be implemented by the subclass
