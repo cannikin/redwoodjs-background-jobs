@@ -7,6 +7,13 @@ describe('constructor', () => {
 
     expect(adapter.options.foo).toEqual('bar')
   })
+
+  test('creates a separate instance var for any logger', () => {
+    const mockLogger = jest.fn()
+    const adapter = new BaseAdapter({ foo: 'bar', logger: mockLogger })
+
+    expect(adapter.logger).toEqual(mockLogger)
+  })
 })
 
 describe('schedule()', () => {
