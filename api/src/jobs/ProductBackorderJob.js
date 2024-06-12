@@ -5,7 +5,7 @@ import { ProductBackorderEmail } from 'src/mail/ProductBackorderEmail'
 import { RedwoodJob } from './RedwoodJob'
 
 export class ProductBackorderJob extends RedwoodJob {
-  // static queue = 'notifications'
+  // static queue = 'email'
   // statis priority = 10
 
   async perform(productID) {
@@ -13,16 +13,24 @@ export class ProductBackorderJob extends RedwoodJob {
 
     if (product.inventoryCount > 0) {
       const waitList = await db.waitlist.findMany({
-        where: { productId: productID },
+        where: { productId: product.id },
       })
 
-      for (const person of waitList) {
-        await mailer.send(ProductBackorderEmail({ product }), {
-          to: person.email,
-          subject: `Product Back in Stock: ${product.name}`,
+      const sent = []
+
+      for (const user of waitList) {
+        sent.push(
+          await mailer.send(ProductBackorderEmail({ product }), {
+            to: user.email,
+            subject: `Product Back in Stock: ${product.name}`,
+          })
+        )
+        await db.waitlist.delete({
+          where: { productId: product.id, email: user.email },
         })
       }
+
+      console.log(`[ProductBackorderJob]: Sent ${sent.length} waitlist emails`)
     }
-    console.log(`ProductBackorderJob: Product ${productID} is backordered`)
   }
 }
