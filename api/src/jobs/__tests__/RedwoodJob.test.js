@@ -321,6 +321,23 @@ describe('instance performLater()', () => {
     })
   })
 
+  test('returns whatever the adapter returns', async () => {
+    class TestJob extends RedwoodJob {
+      async perform() {
+        return 'done'
+      }
+    }
+    const scheduleReturn = { status: 'scheduled' }
+    const mockAdapter = {
+      schedule: jest.fn(() => scheduleReturn),
+    }
+    RedwoodJob.config({ adapter: mockAdapter })
+
+    const result = await new TestJob().performLater('foo', 'bar')
+
+    expect(result).toEqual(scheduleReturn)
+  })
+
   test('catches any errors thrown during schedulding and throws custom error', async () => {
     class TestJob extends RedwoodJob {
       async perform() {
@@ -409,6 +426,19 @@ describe('instance performNow()', () => {
     await new TestJob().performNow('foo', 'bar')
 
     expect(spy).toHaveBeenCalledWith('foo', 'bar')
+  })
+
+  test('returns whatever the perform() function returns', async () => {
+    const performReturn = { status: 'done' }
+    class TestJob extends RedwoodJob {
+      async perform() {
+        return performReturn
+      }
+    }
+
+    const result = await new TestJob().performNow('foo', 'bar')
+
+    expect(result).toEqual(performReturn)
   })
 
   test('catches any errors thrown during perform and throws custom error', async () => {

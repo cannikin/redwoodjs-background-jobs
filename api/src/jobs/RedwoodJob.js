@@ -193,10 +193,9 @@ export class RedwoodJob {
     }
 
     try {
-      const result = await this.constructor.adapter.schedule(
+      return await this.constructor.adapter.schedule(
         this.#payloadWithArgs(args)
       )
-      return result
     } catch (e) {
       throw new SchedulingError(
         `[${this.constructor.name}] exception when scheduling job`,
