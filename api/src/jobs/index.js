@@ -6,7 +6,7 @@ import { ProductBackorderJob } from './ProductBackorderJob'
 import { RedwoodJob } from './RedwoodJob'
 
 RedwoodJob.config({
-  adapter: new PrismaAdapter({ accessor: db.backgroundJob }),
+  adapter: new PrismaAdapter({ accessor: db.backgroundJob, logger }),
   logger,
 })
 
