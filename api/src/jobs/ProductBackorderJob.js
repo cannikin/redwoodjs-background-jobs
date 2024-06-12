@@ -6,6 +6,6 @@ export class ProductBackorderJob extends RedwoodJob {
   // static queue = 'notifications'
 
   async perform(productID) {
-    // TODO Make a fake jobs
+    throw new Error('Could not backorder product')
   }
 }

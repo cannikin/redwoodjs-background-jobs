@@ -12,6 +12,14 @@ describe('static config', () => {
     expect(RedwoodJob.adapter).toEqual(adapter)
   })
 
+  test('can set the logger', () => {
+    const logger = { info: jest.fn() }
+
+    RedwoodJob.config({ logger })
+
+    expect(RedwoodJob.logger).toEqual(logger)
+  })
+
   test('can explictly set the adapter to falsy values for testing', () => {
     RedwoodJob.config({ adapter: null })
     expect(RedwoodJob.adapter).toBeNull()
@@ -30,13 +38,21 @@ describe('constructor()', () => {
     expect(job).toBeInstanceOf(RedwoodJob)
   })
 
+  test('defaults some options', () => {
+    const job = new RedwoodJob()
+    expect(job.options).toEqual({
+      queue: RedwoodJob.queue,
+      priority: RedwoodJob.priority,
+    })
+  })
+
   test('can set options for the job', () => {
     const job = new RedwoodJob({ foo: 'bar' })
     expect(job.options.foo).toEqual('bar')
   })
 })
 
-describe('set()', () => {
+describe('static set()', () => {
   test('returns a job instance', () => {
     const job = RedwoodJob.set({ wait: 300 })
 
@@ -74,6 +90,44 @@ describe('set()', () => {
   })
 })
 
+describe('instance set()', () => {
+  test('returns a job instance', () => {
+    const job = new RedwoodJob().set({ wait: 300 })
+
+    expect(job).toBeInstanceOf(RedwoodJob)
+  })
+
+  test('sets options for the job', () => {
+    const job = new RedwoodJob().set({ foo: 'bar' })
+
+    expect(job.options.foo).toEqual('bar')
+  })
+
+  test('sets the default queue', () => {
+    const job = new RedwoodJob().set({ foo: 'bar' })
+
+    expect(job.options.queue).toEqual(RedwoodJob.queue)
+  })
+
+  test('sets the default priority', () => {
+    const job = new RedwoodJob().set({ foo: 'bar' })
+
+    expect(job.options.priority).toEqual(RedwoodJob.priority)
+  })
+
+  test('can override the queue name set in the class', () => {
+    const job = new RedwoodJob().set({ foo: 'bar', queue: 'priority' })
+
+    expect(job.options.queue).toEqual('priority')
+  })
+
+  test('can override the priority set in the class', () => {
+    const job = new RedwoodJob().set({ foo: 'bar', priority: 10 })
+
+    expect(job.options.priority).toEqual(10)
+  })
+})
+
 describe('get runAt()', () => {
   test('returns the current time if no options are set', () => {
     const job = new RedwoodJob()
@@ -103,6 +157,31 @@ describe('get runAt()', () => {
 
     expect(job.runAt).toEqual(futureDate)
   })
+
+  test('sets the computed time in the `options` property', () => {
+    const job = new RedwoodJob()
+    const runAt = job.runAt
+
+    expect(job.options.runAt).toEqual(runAt)
+  })
+})
+
+describe('set runAt()', () => {
+  test('can set the runAt time directly on the instance', () => {
+    const futureDate = new Date(2030, 1, 2, 12, 34, 56)
+    const job = new RedwoodJob()
+    job.runAt = futureDate
+
+    expect(job.runAt).toEqual(futureDate)
+  })
+
+  test('sets the `options.runAt` property', () => {
+    const futureDate = new Date(2030, 1, 2, 12, 34, 56)
+    const job = new RedwoodJob()
+    job.runAt = futureDate
+
+    expect(job.options.runAt).toEqual(futureDate)
+  })
 })
 
 describe('get queue()', () => {
@@ -124,6 +203,15 @@ describe('get queue()', () => {
     job.queue = 'important'
 
     expect(job.queue).toEqual('important')
+  })
+})
+
+describe('set queue()', () => {
+  test('sets the queue name in `options.queue`', () => {
+    const job = new RedwoodJob()
+    job.queue = 'priority'
+
+    expect(job.options.queue).toEqual('priority')
   })
 })
 
@@ -149,38 +237,33 @@ describe('get priority()', () => {
   })
 })
 
+describe('set priority()', () => {
+  test('sets the priority in `options.priority`', () => {
+    const job = new RedwoodJob()
+    job.priority = 10
+
+    expect(job.options.priority).toEqual(10)
+  })
+})
+
 describe('static performLater()', () => {
   beforeEach(() => {
     jest.clearAllMocks()
   })
 
-  test('throws an error if no adapter is configured', () => {
-    RedwoodJob.config({ adapter: undefined })
-
-    expect(() => RedwoodJob.performLater('foo', 'bar')).toThrow(
-      errors.AdapterNotConfiguredError
-    )
-  })
-
-  test('calls the `schedule` function on the adapter', () => {
+  test('invokes the instance performLater()', () => {
     class TestJob extends RedwoodJob {
       async perform() {
         return 'done'
       }
     }
+    const spy = jest.spyOn(TestJob.prototype, 'performLater')
     const mockAdapter = { schedule: jest.fn() }
     RedwoodJob.config({ adapter: mockAdapter })
-    const spy = jest.spyOn(mockAdapter, 'schedule')
 
     TestJob.performLater('foo', 'bar')
 
-    expect(spy).toHaveBeenCalledWith({
-      handler: 'TestJob',
-      args: ['foo', 'bar'],
-      queue: 'default',
-      priority: 50,
-      runAt: new Date(),
-    })
+    expect(spy).toHaveBeenCalledWith('foo', 'bar')
   })
 })
 
@@ -189,17 +272,35 @@ describe('instance performLater()', () => {
     jest.clearAllMocks()
   })
 
-  test('throws an error if no adapter is configured', () => {
+  test('throws an error if no adapter is configured', async () => {
     RedwoodJob.config({ adapter: undefined })
 
     const job = new RedwoodJob()
 
-    expect(() => job.performLater('foo', 'bar')).toThrow(
+    await expect(job.performLater('foo', 'bar')).rejects.toThrow(
       errors.AdapterNotConfiguredError
     )
   })
 
-  test('calls the `schedule` function on the adapter', () => {
+  test('logs that the job is being scheduled', async () => {
+    class TestJob extends RedwoodJob {
+      async perform() {
+        return 'done'
+      }
+    }
+    const mockAdapter = { schedule: jest.fn() }
+    const mockLogger = { info: jest.fn() }
+    RedwoodJob.config({ adapter: mockAdapter, logger: mockLogger })
+    const spy = jest.spyOn(mockLogger, 'info')
+
+    await new TestJob().performLater('foo', 'bar')
+
+    expect(spy).toHaveBeenCalledWith(
+      '[TestJob] scheduling : {"handler":"TestJob","args":["foo","bar"],"runAt":"2024-01-01T00:00:00.000Z","queue":"default","priority":50}'
+    )
+  })
+
+  test('calls the `schedule` function on the adapter', async () => {
     class TestJob extends RedwoodJob {
       async perform() {
         return 'done'
@@ -209,7 +310,7 @@ describe('instance performLater()', () => {
     RedwoodJob.config({ adapter: mockAdapter })
     const spy = jest.spyOn(mockAdapter, 'schedule')
 
-    new TestJob().performLater('foo', 'bar')
+    await new TestJob().performLater('foo', 'bar')
 
     expect(spy).toHaveBeenCalledWith({
       handler: 'TestJob',
@@ -219,6 +320,28 @@ describe('instance performLater()', () => {
       runAt: new Date(),
     })
   })
+
+  test('catches any errors thrown during schedulding and throws custom error', async () => {
+    class TestJob extends RedwoodJob {
+      async perform() {
+        return 'done'
+      }
+    }
+    const mockAdapter = {
+      schedule: jest.fn(() => {
+        throw new Error('Could not schedule')
+      }),
+    }
+    RedwoodJob.config({ adapter: mockAdapter })
+
+    try {
+      await new TestJob().performLater('foo', 'bar')
+    } catch (e) {
+      expect(e).toBeInstanceOf(errors.SchedulingError)
+      expect(e.message).toEqual('[TestJob] exception when scheduling job')
+      expect(e.original_error.message).toEqual('Could not schedule')
+    }
+  })
 })
 
 describe('static performNow()', () => {
@@ -226,14 +349,15 @@ describe('static performNow()', () => {
     jest.clearAllMocks()
   })
 
-  test('invokes the perform() function immediately', async () => {
+  test('invokes the instance performNow()', () => {
     class TestJob extends RedwoodJob {
       async perform() {
         return 'done'
       }
     }
-
-    const spy = jest.spyOn(TestJob.prototype, 'perform')
+    const spy = jest.spyOn(TestJob.prototype, 'performNow')
+    const mockAdapter = { schedule: jest.fn() }
+    RedwoodJob.config({ adapter: mockAdapter })
 
     TestJob.performNow('foo', 'bar')
 
@@ -252,6 +376,24 @@ describe('instance performNow()', () => {
 
     expect(() => job.performNow('foo', 'bar')).toThrow(
       errors.PerformNotImplementedError
+    )
+  })
+
+  test('logs that the job is being run', async () => {
+    class TestJob extends RedwoodJob {
+      async perform() {
+        return 'done'
+      }
+    }
+    const mockAdapter = { schedule: jest.fn() }
+    const mockLogger = { info: jest.fn() }
+    RedwoodJob.config({ adapter: mockAdapter, logger: mockLogger })
+    const spy = jest.spyOn(mockLogger, 'info')
+
+    await new TestJob().performNow('foo', 'bar')
+
+    expect(spy).toHaveBeenCalledWith(
+      '[TestJob] running now : {"handler":"TestJob","args":["foo","bar"],"runAt":"2024-01-01T00:00:00.000Z","queue":"default","priority":50}'
     )
   })
 

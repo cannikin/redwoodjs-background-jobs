@@ -28,6 +28,8 @@
 import { Adapter } from './Adapter'
 
 export class PrismaAdapter extends Adapter {
+  // Schedules a job by creating a new record in a `BackgroundJob` table
+  // (or whatever the accessor is configured to point to).
   schedule({ handler, args, runAt, queue, priority }) {
     return this.options.accessor.create({
       data: {
