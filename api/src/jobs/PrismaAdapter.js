@@ -56,7 +56,7 @@ export class PrismaAdapter extends BaseAdapter {
         this.model
     } catch (e) {
       // model name must not be right because `this.model` wasn't found in
-      // this.db._runtimeDataModel.models
+      // `this.db._runtimeDataModel.models`
       if (e.name === 'TypeError' && e.message.match("reading 'dbName'")) {
         throw new ModelNameError(this.model)
       } else {
