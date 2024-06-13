@@ -1,12 +1,91 @@
 import { db } from 'src/lib/db'
 
-import { PrismaAdapter } from '../PrismaAdapter'
+import * as errors from '../errors'
+import { PrismaAdapter, DEFAULT_MODEL_NAME } from '../PrismaAdapter'
 
 jest.useFakeTimers().setSystemTime(new Date('2024-01-01'))
 
+describe('constructor', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+  })
+
+  test('defaults this.model name', () => {
+    const adapter = new PrismaAdapter({ db })
+
+    expect(adapter.model).toEqual(DEFAULT_MODEL_NAME)
+  })
+
+  test('can manually set this.model', () => {
+    const dbMock = jest.fn(() => ({
+      _runtimeDataModel: {
+        models: {
+          Job: {
+            dbName: null,
+          },
+        },
+      },
+      job: {},
+    }))
+    const adapter = new PrismaAdapter({
+      db: dbMock(),
+      model: 'Job',
+    })
+
+    expect(adapter.model).toEqual('Job')
+  })
+
+  test('throws an error with a model name that does not exist', () => {
+    expect(() => new PrismaAdapter({ db, model: 'FooBar' })).toThrow(
+      errors.ModelNameError
+    )
+  })
+
+  test('sets this.accessor to the correct Prisma accessor', () => {
+    const adapter = new PrismaAdapter({ db })
+
+    expect(adapter.accessor).toEqual(db.backgroundJob)
+  })
+
+  test('manually set this.tableName ', () => {
+    const adapter = new PrismaAdapter({ db, tableName: 'background_jobz' })
+
+    expect(adapter.tableName).toEqual('background_jobz')
+  })
+
+  test('set this.tableName from custom @@map() name in schema', () => {
+    const dbMock = jest.fn(() => ({
+      _runtimeDataModel: {
+        models: {
+          BackgroundJob: {
+            dbName: 'bg_jobs',
+          },
+        },
+      },
+    }))
+    const adapter = new PrismaAdapter({
+      db: dbMock(),
+    })
+
+    expect(adapter.tableName).toEqual('bg_jobs')
+  })
+
+  test('default this.tableName to camelCase version of model name', () => {
+    const adapter = new PrismaAdapter({ db })
+
+    expect(adapter.tableName).toEqual('BackgroundJob')
+  })
+
+  test('sets this.provider based on the active provider', () => {
+    const adapter = new PrismaAdapter({ db })
+
+    expect(adapter.provider).toEqual('sqlite')
+  })
+})
+
 describe('schedule()', () => {
   test('creates a job in the DB', async () => {
-    const adapter = new PrismaAdapter({ accessor: db.backgroundJob })
+    const adapter = new PrismaAdapter({ db })
     const beforeJobCount = await db.backgroundJob.count()
     await adapter.schedule({
       handler: 'RedwoodJob',
@@ -21,7 +100,7 @@ describe('schedule()', () => {
   })
 
   test('returns the job record that was created', async () => {
-    const adapter = new PrismaAdapter({ accessor: db.backgroundJob })
+    const adapter = new PrismaAdapter({ db })
     const job = await adapter.schedule({
       handler: 'RedwoodJob',
       args: ['foo', 'bar'],
@@ -37,7 +116,7 @@ describe('schedule()', () => {
   })
 
   test('makes no attempt to de-dupe jobs', async () => {
-    const adapter = new PrismaAdapter({ accessor: db.backgroundJob })
+    const adapter = new PrismaAdapter({ db })
     const job1 = await adapter.schedule({
       handler: 'RedwoodJob',
       args: ['foo', 'bar'],
@@ -62,7 +141,7 @@ describe('schedule()', () => {
   })
 
   test('defaults some database fields', async () => {
-    const adapter = new PrismaAdapter({ accessor: db.backgroundJob })
+    const adapter = new PrismaAdapter({ db })
     const job = await adapter.schedule({
       handler: 'RedwoodJob',
       args: ['foo', 'bar'],
