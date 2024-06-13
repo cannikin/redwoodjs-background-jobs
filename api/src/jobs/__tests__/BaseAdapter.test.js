@@ -20,6 +20,30 @@ describe('schedule()', () => {
   test('throws an error if not implemented', () => {
     const adapter = new BaseAdapter({})
 
-    expect(() => adapter.schedule()).toThrow(errors.ScheduleNotImplementedError)
+    expect(() => adapter.schedule()).toThrow(errors.NotImplementedError)
+  })
+})
+
+describe('find()', () => {
+  test('throws an error if not implemented', () => {
+    const adapter = new BaseAdapter({})
+
+    expect(() => adapter.find()).toThrow(errors.NotImplementedError)
+  })
+})
+
+describe('success()', () => {
+  test('throws an error if not implemented', () => {
+    const adapter = new BaseAdapter({})
+
+    expect(() => adapter.success()).toThrow(errors.NotImplementedError)
+  })
+})
+
+describe('failure()', () => {
+  test('throws an error if not implemented', () => {
+    const adapter = new BaseAdapter({})
+
+    expect(() => adapter.failure()).toThrow(errors.NotImplementedError)
   })
 })

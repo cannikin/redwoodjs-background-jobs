@@ -5,7 +5,7 @@
 // be used to configure your custom adapter. If `options.logger` is included
 // you can access it via `this.logger`
 
-import { ScheduleNotImplementedError } from './errors'
+import { NotImplementedError } from './errors'
 
 export class BaseAdapter {
   constructor(options) {
@@ -14,6 +14,18 @@ export class BaseAdapter {
   }
 
   schedule() {
-    throw new ScheduleNotImplementedError()
+    throw new NotImplementedError('schedule')
+  }
+
+  find() {
+    throw new NotImplementedError('find')
+  }
+
+  success() {
+    throw new NotImplementedError('success')
+  }
+
+  failure() {
+    throw new NotImplementedError('failure')
   }
 }
