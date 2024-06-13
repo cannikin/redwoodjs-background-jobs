@@ -1,3 +1,4 @@
+import { PrismaAdapter } from 'api/src/jobs/PrismaAdapter'
 import { db } from 'api/src/lib/db'
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
@@ -5,58 +6,52 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 const WAIT_TIME = 5000
 const PROCESS_NAME = `jobRunner-${process.pid}`
 const MAX_JOB_RUNTIME = 60 * 60 * 4 * 1000 // 4 hours
+const adapter = new PrismaAdapter({ db })
 
-const findSqliteJob = async () => {
-  return await db.$transaction(async (tx) => {
-    // Find any jobs that should run now. Look for ones that are:
-    // - have a runtAt in the past
-    // - and are either not locked, or where locked more than 4 hours ago
-    // - or were already locked by this exact process and never cleaned up
-    // - and don't have a failedAt, meaning we have stopped retrying
-    // or were locked by this process previously and so should be attempted again.
-    let outstandingJobs = await tx.$queryRaw`
-      SELECT id, attempts
-      FROM   BackgroundJob
-      WHERE (
-        (
-          runAt <= ${new Date()} AND (
-            lockedAt IS NULL OR
-            lockedAt < ${new Date(new Date() - MAX_JOB_RUNTIME)}
-          ) OR lockedBy = ${PROCESS_NAME}
-        ) AND failedAt IS NULL)
-      ORDER BY priority ASC, runAt ASC
-      LIMIT 1;`
+// Actually instantiate the job class and call `perform()` on it, passing in
+// any args
+const perform = async (job) => {
+  const details = JSON.parse(job.handler)
+  const Job = await import(`api/src/jobs/${details.handler}`)
+  await new Job[details.handler]().perform(...details.args)
+}
 
-    if (outstandingJobs.length) {
-      // If one was found, lock it
-      await tx.$queryRaw`
-        UPDATE BackgroundJob
-        SET    lockedAt = ${new Date()},
-                lockedBy = ${PROCESS_NAME},
-                attempts = ${outstandingJobs[0].attempts + 1}
-        WHERE  id  = ${outstandingJobs[0].id};`
+// Handle job success: remove from DB
+const onSuccess = async (job) => {
+  await adapter.succeed(job)
+}
 
-      // Return the full job details after locking update
-      outstandingJobs = await tx.$queryRaw`
-        SELECT *
-        FROM   BackgroundJob
-        WHERE  id = ${outstandingJobs[0].id};`
-    }
-
-    return outstandingJobs[0]
-  })
+// Handle job failure: add error to DB and retry time (or mark `failedAt`)
+const onFailure = async (job, error) => {
+  await adapter.fail(job, error)
 }
 
 export default async () => {
-  while (true) {
-    let job
-
-    if (db._activeProvider === 'sqlite') {
-      job = await findSqliteJob()
-    }
+  // Trick to run forever, as the linter doesn't like `while (true)`
+  for (;;) {
+    const job = await adapter.find({
+      processName: PROCESS_NAME,
+      maxRuntime: MAX_JOB_RUNTIME,
+    })
 
     if (job) {
-      console.info(`Running job ${job.id}`, job)
+      const { handler, args } = JSON.parse(job.handler)
+
+      try {
+        console.info(`[${handler}] Started ${job.id}`, {
+          args: args,
+        })
+        await perform(job)
+        console.info(`[${handler}] Complete ${job.id}`, {
+          args: args,
+        })
+        await onSuccess(job)
+      } catch (e) {
+        console.error(`[${handler}] Failed ${job.id}`, {
+          args: args,
+        })
+        await onFailure(job, e)
+      }
     }
 
     await delay(WAIT_TIME)
