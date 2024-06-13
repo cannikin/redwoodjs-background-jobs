@@ -21,9 +21,15 @@ export class PerformNotImplementedError extends RedwoodJobError {
 }
 
 // Thrown when a custom adapter does not implement the `schedule` method
-export class ScheduleNotImplementedError extends RedwoodJobError {
-  constructor() {
-    super('You must implement the `schedule` method in your adapter')
+export class NotImplementedError extends RedwoodJobError {
+  constructor(name) {
+    super(`You must implement the \`${name}\` method in your adapter`)
+  }
+}
+
+export class ModelNameError extends RedwoodJobError {
+  constructor(name) {
+    super(`Model \`${name}\` not found in PrismaClient`)
   }
 }
 
