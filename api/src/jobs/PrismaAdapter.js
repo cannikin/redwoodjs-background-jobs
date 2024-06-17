@@ -79,11 +79,11 @@ export class PrismaAdapter extends BaseAdapter {
     }
   }
 
-  succeed(job) {
+  success(job) {
     console.info('Marking job as succeeded', job)
   }
 
-  fail(job, error) {
+  failure(job, error) {
     console.error('Marking job as failed', job, error)
   }
 
