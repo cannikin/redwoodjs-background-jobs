@@ -79,3 +79,15 @@ export class PerformError extends RethrownJobError {
     super(message, error)
   }
 }
+
+export class AdapterRequiredError extends RedwoodJobError {
+  constructor() {
+    super('`adapter` is required to perform a job')
+  }
+}
+
+export class JobRequiredError extends RedwoodJobError {
+  constructor() {
+    super('`job` is required to perform a job')
+  }
+}
