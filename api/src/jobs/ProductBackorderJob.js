@@ -9,7 +9,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 export class ProductBackorderJob extends RedwoodJob {
   async perform(productID) {
     console.info(`  Checking product ${productID} for backorders...`)
-    await delay(3000)
+    await delay(1000)
     console.info(`  Emails sent!`)
   }
 }

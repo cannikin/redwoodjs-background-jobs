@@ -43,10 +43,7 @@ export class Worker {
       // if we're looping forever, wait a bit before checking for more jobs
       if (this.forever) {
         const millsSinceLastCheck = new Date() - this.lastCheckTime
-        console.info('lastCheckTime', this.lastCheckTime)
-        console.info('millsSinceLastCheck', millsSinceLastCheck)
         if (millsSinceLastCheck < this.waitTime) {
-          console.info('going to wait', this.waitTime - millsSinceLastCheck)
           await this.#wait(this.waitTime - millsSinceLastCheck)
         }
       }
