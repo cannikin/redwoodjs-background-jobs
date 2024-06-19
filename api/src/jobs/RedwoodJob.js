@@ -8,9 +8,11 @@ import {
   PerformError,
 } from './errors'
 
+export const DEFAULT_QUEUE = 'default'
+
 export class RedwoodJob {
   // The default queue for all jobs
-  static queue = 'default'
+  static queue = DEFAULT_QUEUE
 
   // The default priority for all jobs
   // Assumes a range of 1 - 100, 1 being highest priority
