@@ -33,8 +33,9 @@ export class Worker {
     if (!this.adapter) throw new AdapterRequiredError()
   }
 
+  // Workers run forever unless setting `this.forever` to false (like for tests,
+  // or after pressing Ctrl-C in the console)
   async run() {
-    // Workers run forever unless setting `this.forever` to false (like for tests)
     do {
       this.lastCheckTime = new Date()
 
@@ -48,8 +49,8 @@ export class Worker {
         await new Executor({ adapter: this.adapter, job }).perform()
       }
 
-      // if we're looping forever, wait a bit before checking for more jobs
-      if (this.forever) {
+      //  sleep if there were no jobs found, otherwise get back to work
+      if (!job && this.forever) {
         const millsSinceLastCheck = new Date() - this.lastCheckTime
         if (millsSinceLastCheck < this.waitTime) {
           await this.#wait(this.waitTime - millsSinceLastCheck)
