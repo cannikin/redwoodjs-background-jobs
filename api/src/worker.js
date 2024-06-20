@@ -10,7 +10,7 @@ import { PrismaAdapter } from './jobs/PrismaAdapter'
 import { Worker } from './jobs/Worker'
 import { db } from './lib/db'
 
-process.title = argv.title
+process.title = argv.t
 
 process.on('message', (message) => {
   console.info('Message from parent:', message)
