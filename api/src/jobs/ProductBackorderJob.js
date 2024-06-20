@@ -1,6 +1,6 @@
-import { db } from 'src/lib/db'
-import { mailer } from 'src/lib/mailer'
-import { ProductBackorderEmail } from 'src/mail/ProductBackorderEmail'
+// import { db } from 'src/lib/db'
+// import { mailer } from 'src/lib/mailer'
+// import { ProductBackorderEmail } from 'src/mail/ProductBackorderEmail'
 
 import { RedwoodJob } from './RedwoodJob'
 
@@ -8,8 +8,11 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
 export class ProductBackorderJob extends RedwoodJob {
   async perform(productID) {
-    console.info(`  Checking product ${productID} for backorders...`)
-    await delay(1000)
+    const wait = Math.round(Math.random() * 1000 * 2)
+    console.info(
+      `  Checking product ${productID} for backorders (delaying ${wait}ms)...`
+    )
+    await delay(wait)
     console.info(`  Emails sent!`)
   }
 }
