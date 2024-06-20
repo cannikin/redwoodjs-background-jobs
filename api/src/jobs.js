@@ -33,14 +33,22 @@ for (let i = 0; i < workerCount; i++) {
   workers.push(child)
 }
 
+let sigtermCount = 0
+
 // if the parent itself receives a ctrl-c, tell each worker to gracefully exit
 // once they all exit, this parent will automatically exit
 process.on('SIGINT', () => {
-  console.info(
-    `[${process.title}]`,
-    `SIGINT received, shutting down workers...`
-  )
+  sigtermCount++
+  let message =
+    'SIGINT received: shutting down workers gracefully (press Ctrl-C again to exit immediately)...'
+
+  if (sigtermCount > 1) {
+    message = 'SIGINT received again, exiting immediately...'
+  }
+
+  console.info(`[${process.title}]`, message)
+
   workers.forEach((worker) => {
-    worker.kill('SIGINT')
+    sigtermCount > 1 ? worker.kill() : worker.kill('SIGINT')
   })
 })

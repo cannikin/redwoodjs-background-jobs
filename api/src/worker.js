@@ -11,11 +11,6 @@ import { Worker } from './jobs/Worker'
 import { db } from './lib/db'
 
 process.title = argv.t
-
-process.on('message', (message) => {
-  console.info('Message from parent:', message)
-})
-
 process.send(`Starting Worker...`)
 
 const worker = new Worker({
@@ -31,10 +26,25 @@ worker.run().then(() => {
   process.exit(0)
 })
 
+// watch for messages from the parent
+process.on('message', (message) => {
+  console.info('From runner:', message)
+})
+
+// watch for signals from the parent
+
 // if the parent itself receives a ctrl-c it'll pass that to the workers.
 // workers will exit gracefully by setting `forever` to `false` which will tell
 // it not to pick up a new job when done with the current one
 process.on('SIGINT', () => {
   process.send('SIGINT received: finishing work...')
   worker.forever = false
+})
+
+// if the parent itself receives a ctrl-c more than once it'll send SIGTERM
+// instead in which case we exit immediately no matter what state the worker is
+// in
+process.on('SIGTERM', () => {
+  process.send('SIGTERM received: exiting immediately...')
+  process.exit(0)
 })
