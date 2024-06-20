@@ -104,43 +104,55 @@ export class PrismaAdapter extends BaseAdapter {
     console.info(...args)
   }
 
-  #sqliteFind({ processName, maxRuntime }) {
-    return this.db.$transaction(async (tx) => {
-      // Find any jobs that should run now. Look for ones that:
-      // - have a runtAt in the past
-      // - and are either not locked, or were locked more than `maxRuntime` ago
-      // - or were already locked by this exact process and never cleaned up
-      // - and don't have a failedAt, meaning we will stop retrying
-      let outstandingJobs = await tx.$queryRawUnsafe(`
+  async #sqliteFind({ processName, maxRuntime }) {
+    const where = `
+      (
+        (
+          runAt <= ${new Date().getTime()} AND (
+            lockedAt IS NULL OR
+            lockedAt < ${new Date(new Date() - maxRuntime).getTime()}
+          ) OR lockedBy = '${processName}'
+        ) AND failedAt IS NULL
+      )
+    `
+
+    // Find any jobs that should run now. Look for ones that:
+    // - have a runtAt in the past
+    // - and are either not locked, or were locked more than `maxRuntime` ago
+    // - or were already locked by this exact process and never cleaned up
+    // - and don't have a failedAt, meaning we will stop retrying
+    let outstandingJobs = await this.db.$queryRawUnsafe(`
         SELECT id, attempts
         FROM   ${this.tableName}
-        WHERE (
-          (
-            runAt <= ${new Date().getTime()} AND (
-              lockedAt IS NULL OR
-              lockedAt < ${new Date(new Date() - maxRuntime).getTime()}
-            ) OR lockedBy = '${processName}'
-          ) AND failedAt IS NULL)
+        WHERE  ${where}
         ORDER BY priority ASC, runAt ASC
         LIMIT 1;`)
 
-      if (outstandingJobs.length) {
-        // If one was found, lock it
-        await tx.$queryRawUnsafe(`
-          UPDATE ${this.tableName}
-          SET    lockedAt = ${new Date().getTime()},
+    if (outstandingJobs.length) {
+      const id = outstandingJobs[0].id
+
+      // If one was found, try to lock it by updating the record with the
+      // same WHERE clause as above (if another locked in the meantime it won't
+      // find any record to update)
+      const updatedCount = await this.db.$queryRawUnsafe(`
+          UPDATE  ${this.tableName}
+          SET     lockedAt = ${new Date().getTime()},
                   lockedBy = '${processName}',
                   attempts = ${outstandingJobs[0].attempts + 1}
-          WHERE  id = ${outstandingJobs[0].id};`)
+          WHERE   ${where} AND id = ${id};`)
 
-        // Return the full job details after locking update
-        outstandingJobs = await tx.$queryRawUnsafe(`
-          SELECT *
-          FROM   ${this.tableName}
-          WHERE  id = ${outstandingJobs[0].id};`)
+      // Assuming the update worked, return the job
+      if (updatedCount) {
+        const job = await this.db.$queryRawUnsafe(`
+            SELECT *
+            FROM   ${this.tableName}
+            WHERE  id = ${id};`)
+        return job[0]
       }
+    }
 
-      return outstandingJobs[0]
-    })
+    // If we get here then there were either no jobs, or the one we found
+    // was locked by another worker
+    return null
   }
 }
