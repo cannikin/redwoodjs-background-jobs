@@ -11,13 +11,20 @@ export class Worker {
     this.options = options
     this.adapter = options?.adapter
     this.queue = options?.queue || DEFAULT_QUEUE
-    this.processName = options?.processName || `runner-${process.pid}`
+    this.processName = options?.processName || `rw-job-worker.${process.pid}`
+
+    // the maximum amount of time to let a job run
     this.maxRuntime =
       options?.maxRuntime === undefined
         ? DEFAULT_MAX_RUNTIME
         : options.maxRuntime
+
+    // the amount of time to wait between checking for jobs. the time it took
+    // to run a job is subtracted from this time, so this is a maximum wait time
     this.waitTime =
       options?.waitTime === undefined ? DEFAULT_WAIT_TIME : options.waitTime
+
+    // keep track of the last time we checked for jobs
     this.lastCheckTime = new Date()
 
     // Mainly for testing: set to `false` so the run() loop only runs once
@@ -37,6 +44,7 @@ export class Worker {
       })
 
       if (job) {
+        // TODO add timeout handling if runs for more than `this.maxRuntime`
         await new Executor({ adapter: this.adapter, job }).perform()
       }
 
