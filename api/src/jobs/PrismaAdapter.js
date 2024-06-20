@@ -79,6 +79,10 @@ export class PrismaAdapter extends BaseAdapter {
     }
   }
 
+  async get(id) {
+    return this.accessor.findFirst({ where: { id } })
+  }
+
   success(job) {
     this.#log('Marking job as succeeded', job.id)
   }

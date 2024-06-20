@@ -4,10 +4,10 @@ export class Executor {
   constructor(options) {
     this.options = options
     this.adapter = options?.adapter
-    this.job = options?.job
+    this.jobId = options?.jobId
 
     if (!this.adapter) throw new AdapterRequiredError()
-    if (!this.job) throw new JobRequiredError()
+    if (!this.jobId) throw new JobRequiredError()
   }
 
   #log(message) {
@@ -20,8 +20,9 @@ export class Executor {
 
   // Actually instantiate the job class and call `perform()` on it, passing in
   // any args
-  async perform(job) {
-    this.#log('Started', job)
+  async perform() {
+    this.job = await this.adapter.get(this.jobId)
+    this.#log('Started')
 
     try {
       const details = JSON.parse(this.job.handler)

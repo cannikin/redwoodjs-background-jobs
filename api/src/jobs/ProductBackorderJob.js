@@ -8,7 +8,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
 export class ProductBackorderJob extends RedwoodJob {
   async perform(productID) {
-    const wait = Math.round(Math.random() * 1000 * 2)
+    const wait = Math.round(Math.random() * 1000 * 10)
     console.info(
       `  Checking product ${productID} for backorders (delaying ${wait}ms)...`
     )

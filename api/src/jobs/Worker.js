@@ -1,7 +1,8 @@
+import { execSync } from 'child_process'
+
 import { DEFAULT_QUEUE } from 'src/jobs/RedwoodJob'
 
 import { AdapterRequiredError } from './errors'
-import { Executor } from './Executor'
 
 export const DEFAULT_WAIT_TIME = 5000 // 5 seconds
 export const DEFAULT_MAX_RUNTIME = 60 * 60 * 4 * 1000 // 4 hours
@@ -34,7 +35,6 @@ export class Worker {
   }
 
   async run() {
-    // Workers run forever unless setting `this.forever` to false (like for tests)
     do {
       this.lastCheckTime = new Date()
 
@@ -44,10 +44,21 @@ export class Worker {
       })
 
       if (job) {
-        // TODO add timeout handling if runs for more than `this.maxRuntime`
-        await new Executor({ adapter: this.adapter, job }).perform()
+        try {
+          execSync(`node api/dist/executor.js -j ${job.id}`, {
+            timeout: this.maxRuntime,
+            stdio: 'inherit',
+          })
+        } catch (e) {
+          if (e.message.match(/ETIMEDOUT/)) {
+            console.error('Job timed out')
+          } else {
+            throw e
+          }
+        }
       }
 
+      // TODO only delay if there are zero jobs available
       // if we're looping forever, wait a bit before checking for more jobs
       if (this.forever) {
         const millsSinceLastCheck = new Date() - this.lastCheckTime
