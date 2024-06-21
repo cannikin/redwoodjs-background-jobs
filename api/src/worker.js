@@ -23,8 +23,6 @@ const argv = yargs(hideBin(process.argv))
   })
   .help().argv
 
-console.info(argv)
-
 import { PrismaAdapter } from './jobs/PrismaAdapter'
 import { Worker } from './jobs/Worker'
 import { db } from './lib/db'
