@@ -1,3 +1,5 @@
+// Used by the job runner to find the next job to run and invoke the Executor
+
 import { DEFAULT_QUEUE } from 'src/jobs/RedwoodJob'
 
 import { AdapterRequiredError } from './errors'
@@ -11,6 +13,7 @@ export class Worker {
     this.options = options
     this.adapter = options?.adapter
     this.queue = options?.queue || DEFAULT_QUEUE
+    this.logger = options?.logger || console
     this.processName = options?.processName || `rw-job-worker.${process.pid}`
 
     // the maximum amount of time to let a job run
@@ -46,7 +49,11 @@ export class Worker {
 
       if (job) {
         // TODO add timeout handling if runs for more than `this.maxRuntime`
-        await new Executor({ adapter: this.adapter, job }).perform()
+        await new Executor({
+          adapter: this.adapter,
+          job,
+          logger: this.logger,
+        }).perform()
       }
 
       //  sleep if there were no jobs found, otherwise get back to work
