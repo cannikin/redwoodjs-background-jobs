@@ -54,6 +54,8 @@ export class Worker {
     do {
       this.lastCheckTime = new Date()
 
+      this.logger.debug(`[${this.processName}] Checking for jobs...`)
+
       const job = await this.adapter.find({
         processName: this.processName,
         maxRuntime: this.maxRuntime,
