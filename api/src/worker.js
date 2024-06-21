@@ -47,6 +47,7 @@ const worker = new Worker({
   adapter: new PrismaAdapter({ db }),
   processName: process.title,
   logger,
+  queue: argv.q,
 })
 
 // run() normally loops forever, but if it does stop (because `worker.forever`

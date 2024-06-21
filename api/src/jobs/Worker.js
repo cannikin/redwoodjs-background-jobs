@@ -45,6 +45,7 @@ export class Worker {
       const job = await this.adapter.find({
         processName: this.processName,
         maxRuntime: this.maxRuntime,
+        queue: this.queue,
       })
 
       if (job) {

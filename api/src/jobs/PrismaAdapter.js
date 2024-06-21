@@ -100,10 +100,11 @@ export class PrismaAdapter extends BaseAdapter {
     })
   }
 
-  async #sqliteFind({ processName, maxRuntime }) {
+  async #sqliteFind({ processName, maxRuntime, queue }) {
     const where = `
       (
         (
+          queue = '${queue}' AND
           runAt <= ${new Date().getTime()} AND (
             lockedAt IS NULL OR
             lockedAt < ${new Date(new Date() - maxRuntime).getTime()}
