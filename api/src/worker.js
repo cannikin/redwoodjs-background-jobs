@@ -1,34 +1,67 @@
+#!/usr/bin/env node
+
 import { hideBin } from 'yargs/helpers'
 import yargs from 'yargs/yargs'
 
 import { loadEnvFiles } from '@redwoodjs/cli/dist/lib/loadEnvFiles'
 loadEnvFiles()
 
-const argv = yargs(hideBin(process.argv)).argv
+const argv = yargs(hideBin(process.argv))
+  .usage(
+    'Starts a single RedwoodJob worker to process background jobs\n\nUsage: $0 [options]'
+  )
+  .option('i', {
+    alias: 'id',
+    type: 'number',
+    description: 'The worker ID',
+    demandOption: true,
+  })
+  .option('q', {
+    alias: 'queue',
+    type: 'string',
+    description: 'The named queue to work on',
+  })
+  .help().argv
+
+console.info(argv)
 
 import { PrismaAdapter } from './jobs/PrismaAdapter'
 import { Worker } from './jobs/Worker'
 import { db } from './lib/db'
 
-process.title = argv.t
-process.send(`Starting Worker...`)
+const TITLE_PREFIX = `rw-job-worker`
+
+// TODO figure out Redwood logger
+const logger = console
+
+// set the process title
+let title = TITLE_PREFIX
+if (argv.q) {
+  title += `.${argv.q}.${argv.i}`
+} else {
+  title += `.${argv.i}`
+}
+process.title = title
+
+logger.info(`[${process.title}] Starting Worker...`)
 
 const worker = new Worker({
   adapter: new PrismaAdapter({ db }),
   processName: process.title,
+  logger,
 })
 
 // run() normally loops forever, but if it does stop (because `worker.forever`
 // is set to `false`, or the worker receives a SIGINT), we'll send a message and
 // exit gracefully
 worker.run().then(() => {
-  process.send(`Shutting down`)
+  logger.info(`[${process.title}] Shutting down`)
   process.exit(0)
 })
 
 // watch for messages from the parent
 process.on('message', (message) => {
-  console.info('From runner:', message)
+  logger.info('From runner:', message)
 })
 
 // watch for signals from the parent
@@ -37,7 +70,7 @@ process.on('message', (message) => {
 // workers will exit gracefully by setting `forever` to `false` which will tell
 // it not to pick up a new job when done with the current one
 process.on('SIGINT', () => {
-  process.send('SIGINT received: finishing work...')
+  logger.info(`[${process.title}] SIGINT received, finishing work...`)
   worker.forever = false
 })
 
@@ -45,6 +78,6 @@ process.on('SIGINT', () => {
 // instead in which case we exit immediately no matter what state the worker is
 // in
 process.on('SIGTERM', () => {
-  process.send('SIGTERM received: exiting immediately...')
+  process.send(`[${process.title}] SIGTERM received, exiting now!`)
   process.exit(0)
 })
