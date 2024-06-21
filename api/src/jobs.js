@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 
+import { fork } from 'node:child_process'
+
 import { hideBin } from 'yargs/helpers'
 import yargs from 'yargs/yargs'
 
 import { loadEnvFiles } from '@redwoodjs/cli/dist/lib/loadEnvFiles'
 loadEnvFiles()
-
-const { fork } = require('child_process')
 
 const argv = yargs(hideBin(process.argv))
   .usage(
@@ -61,10 +61,13 @@ const argv = yargs(hideBin(process.argv))
   )
   .help().argv
 
+const command = argv._[0]
+const shouldDetachWorkers = ['start', 'restart'].includes(command)
+
 // Are we working off a number of workers or number of named queues?
 let workerCount = 1
 let namedWorkers = []
-if (['start', 'restart'].includes(argv._[0])) {
+if (['start', 'restart'].includes(command)) {
   if (argv.n.includes(':')) {
     const workers = argv.n.split(',')
     workers.forEach((count) => {
@@ -85,7 +88,6 @@ const workers = []
 const logger = console
 
 logger.info(
-  { foo: 'bar' },
   `[${process.title}] Starting RedwoodJob Runner at ${new Date().toISOString()} with ${namedWorkers.length || workerCount} worker(s)...`
 )
 
@@ -105,18 +107,33 @@ for (let i = 0; i < workerCount; i++) {
   } else {
     workerArgs.push('-i', i)
   }
-  const child = fork('api/dist/worker.js', workerArgs)
 
-  // when the child exits
-  child.on('exit', (code) => {
-    logger.info(`[${process.title}] Exited with code ${code}`)
-    workers.splice(workers.indexOf(child), 1)
+  // fork the worker process
+  const child = fork('api/dist/worker.js', workerArgs, {
+    detached: shouldDetachWorkers,
+    stdio: shouldDetachWorkers ? 'ignore' : 'inherit',
   })
 
-  // track our array of workers so we can send them all messages
-  workers.push(child)
+  if (shouldDetachWorkers) {
+    child.unref()
+  } else {
+    // children stay attached so watch for their exit
+    child.on('exit', (code) => {
+      logger.info(`[${process.title}] Exited with code ${code}`)
+      workers.splice(workers.indexOf(child), 1)
+    })
+
+    // track our array of workers so we can send them all messages
+    workers.push(child)
+  }
 }
 
+if (shouldDetachWorkers) {
+  logger.info(`[${process.title}] Workers detached, exiting parent process...`)
+  process.exit(0)
+}
+
+// if we get here then we're still monitoring children and have to pass on signals
 let sigtermCount = 0
 
 // If the parent receives a ctrl-c, tell each worker to gracefully exit.
@@ -136,5 +153,3 @@ process.on('SIGINT', () => {
     sigtermCount > 1 ? worker.kill() : worker.kill('SIGINT')
   })
 })
-
-process.title = 'rw-job-runner'
