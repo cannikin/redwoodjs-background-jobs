@@ -28,4 +28,8 @@ export class BaseAdapter {
   failure() {
     throw new NotImplementedError('failure')
   }
+
+  #log(message, { level = 'info' }) {
+    this.logger[level](message)
+  }
 }

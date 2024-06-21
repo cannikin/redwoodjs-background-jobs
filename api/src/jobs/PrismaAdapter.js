@@ -80,11 +80,11 @@ export class PrismaAdapter extends BaseAdapter {
   }
 
   success(job) {
-    this.#log('Marking job as succeeded', job.id)
+    console.info('Marking job as succeeded', job.id)
   }
 
   failure(job, error) {
-    this.#log('Marking job as failed', job.id, error)
+    console.info('Marking job as failed', job.id, error)
   }
 
   // Schedules a job by creating a new record in a `BackgroundJob` table
@@ -98,10 +98,6 @@ export class PrismaAdapter extends BaseAdapter {
         priority,
       },
     })
-  }
-
-  #log(...args) {
-    console.info(...args)
   }
 
   async #sqliteFind({ processName, maxRuntime }) {
