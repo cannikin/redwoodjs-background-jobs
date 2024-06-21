@@ -1,7 +1,12 @@
 import * as errors from '../errors'
 import { Executor } from '../Executor'
 import { DEFAULT_QUEUE } from '../RedwoodJob'
-import { Worker, DEFAULT_MAX_RUNTIME, DEFAULT_WAIT_TIME } from '../Worker'
+import {
+  Worker,
+  DEFAULT_MAX_RUNTIME,
+  DEFAULT_WAIT_TIME,
+  DEFAULT_PROCESS_NAME_PREFIX,
+} from '../Worker'
 
 jest.mock('../Executor')
 
@@ -47,7 +52,8 @@ describe('constructor', () => {
     const options = { adapter: 'adapter' }
     const worker = new Worker(options)
 
-    expect(worker.processName).toMatch(/runner-\d+/)
+    expect(worker.processName).toContain(DEFAULT_PROCESS_NAME_PREFIX)
+    expect(worker.processName).toMatch(/\.\d+$/)
   })
 
   test('extracts maxRuntime from options to variable', () => {
@@ -125,15 +131,27 @@ describe('run', () => {
     expect(adapter.find).toHaveBeenCalledWith({
       processName: worker.processName,
       maxRuntime: worker.maxRuntime,
+      queue: worker.queue,
     })
   })
 
-  test('does nothing if no job found', async () => {
+  test('does nothing if no job found and forever=false', async () => {
     const adapter = { find: jest.fn(() => null) }
     const mockExecutor = jest.fn()
     jest.mock('../Executor', () => ({ Executor: mockExecutor }))
 
     const worker = new Worker({ adapter, waitTime: 0, forever: false })
+    await worker.run()
+
+    expect(mockExecutor).not.toHaveBeenCalled()
+  })
+
+  test('does nothing if no job found and workoff=true', async () => {
+    const adapter = { find: jest.fn(() => null) }
+    const mockExecutor = jest.fn()
+    jest.mock('../Executor', () => ({ Executor: mockExecutor }))
+
+    const worker = new Worker({ adapter, waitTime: 0, workoff: true })
     await worker.run()
 
     expect(mockExecutor).not.toHaveBeenCalled()
@@ -145,7 +163,11 @@ describe('run', () => {
 
     await worker.run()
 
-    expect(Executor).toHaveBeenCalledWith({ adapter, job: { id: 1 } })
+    expect(Executor).toHaveBeenCalledWith({
+      adapter,
+      job: { id: 1 },
+      logger: worker.logger,
+    })
   })
 
   test('calls `perform` on the Executor instance', async () => {
