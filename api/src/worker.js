@@ -55,13 +55,8 @@ const worker = new Worker({
 // is set to `false`, or the worker receives a SIGINT), we'll send a message and
 // exit gracefully
 worker.run().then(() => {
-  logger.info(`[${process.title}] Shutting down`)
+  logger.info(`[${process.title}] Worker finished, shutting down.`)
   process.exit(0)
-})
-
-// watch for messages from the parent
-process.on('message', (message) => {
-  logger.info('From runner:', message)
 })
 
 // watch for signals from the parent
@@ -78,6 +73,6 @@ process.on('SIGINT', () => {
 // instead in which case we exit immediately no matter what state the worker is
 // in
 process.on('SIGTERM', () => {
-  process.send(`[${process.title}] SIGTERM received, exiting now!`)
+  logger.info(`[${process.title}] SIGTERM received, exiting now!`)
   process.exit(0)
 })

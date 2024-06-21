@@ -102,11 +102,6 @@ for (let i = 0; i < workerCount; i++) {
   }
   const child = fork('api/dist/worker.js', workerArgs)
 
-  // listen for messages from the child process
-  child.on('message', (message) => {
-    logger.info(`[${process.title}]`, message)
-  })
-
   // when the child exits
   child.on('exit', (code) => {
     logger.info(`[${process.title}] Exited with code ${code}`)
@@ -119,8 +114,8 @@ for (let i = 0; i < workerCount; i++) {
 
 let sigtermCount = 0
 
-// if the parent itself receives a ctrl-c, tell each worker to gracefully exit
-// once they all exit, this parent will automatically exit
+// If the parent receives a ctrl-c, tell each worker to gracefully exit.
+// If the parent receives a second ctrl-c, exit immediately.
 process.on('SIGINT', () => {
   sigtermCount++
   let message =
