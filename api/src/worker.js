@@ -21,6 +21,12 @@ const argv = yargs(hideBin(process.argv))
     type: 'string',
     description: 'The named queue to work on',
   })
+  .option('o', {
+    alias: 'workoff',
+    type: 'boolean',
+    default: false,
+    description: 'Work off all jobs in the queue and exit',
+  })
   .help().argv
 
 import { PrismaAdapter } from './jobs/PrismaAdapter'
@@ -35,9 +41,9 @@ const logger = console
 // set the process title
 let title = TITLE_PREFIX
 if (argv.q) {
-  title += `.${argv.q}.${argv.i}`
+  title += `.${argv.queue}.${argv.id}`
 } else {
-  title += `.${argv.i}`
+  title += `.${argv.id}`
 }
 process.title = title
 
@@ -47,7 +53,8 @@ const worker = new Worker({
   adapter: new PrismaAdapter({ db }),
   processName: process.title,
   logger,
-  queue: argv.q,
+  queue: argv.queue,
+  workoff: argv.workoff,
 })
 
 // run() normally loops forever, but if it does stop (because `worker.forever`

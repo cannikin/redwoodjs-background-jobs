@@ -93,6 +93,11 @@ logger.info(
 for (let i = 0; i < workerCount; i++) {
   const workerArgs = []
 
+  // workoff mode?
+  if (argv._[0] === 'workoff') {
+    workerArgs.push('-o')
+  }
+
   // working on named queues?
   if (namedWorkers.length) {
     workerArgs.push('-q', namedWorkers[i][0])
