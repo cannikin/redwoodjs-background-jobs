@@ -1,5 +1,5 @@
 // Base class for all jobs, providing a common interface for scheduling jobs.
-// At a minimum, you must implement the `perform` method in your job.
+// At a minimum you must implement the `perform` method in your job subclass.
 
 import {
   AdapterNotConfiguredError,
