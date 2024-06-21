@@ -84,6 +84,10 @@ describe('constructor', () => {
 })
 
 describe('schedule()', () => {
+  afterEach(async () => {
+    await db.backgroundJob.deleteMany()
+  })
+
   test('creates a job in the DB', async () => {
     const adapter = new PrismaAdapter({ db })
     const beforeJobCount = await db.backgroundJob.count()
@@ -155,5 +159,60 @@ describe('schedule()', () => {
     expect(job.lockedBy).toBeNull()
     expect(job.lastError).toBeNull()
     expect(job.failedAt).toBeNull()
+  })
+})
+
+describe('find()', () => {
+  scenario('returns null if no job found', async () => {
+    const adapter = new PrismaAdapter({ db })
+    const job = await adapter.find({
+      processName: 'test',
+      maxRuntime: 1000,
+      queue: 'default',
+    })
+    expect(job).toBeNull()
+  })
+
+  scenario('returns a job if conditions met', async (scenario) => {
+    const adapter = new PrismaAdapter({ db })
+    const job = await adapter.find({
+      processName: 'test',
+      maxRuntime: 1000,
+      queue: scenario.backgroundJob.email.queue,
+    })
+    expect(job.id).toEqual(scenario.backgroundJob.email.id)
+  })
+
+  scenario(
+    'increments the `attempts` count on the found job',
+    async (scenario) => {
+      const adapter = new PrismaAdapter({ db })
+      const job = await adapter.find({
+        processName: 'test',
+        maxRuntime: 1000,
+        queue: scenario.backgroundJob.email.queue,
+      })
+      expect(job.attempts).toEqual(scenario.backgroundJob.email.attempts + 1)
+    }
+  )
+
+  scenario('locks the job for the current process', async (scenario) => {
+    const adapter = new PrismaAdapter({ db })
+    const job = await adapter.find({
+      processName: 'test-process',
+      maxRuntime: 1000,
+      queue: scenario.backgroundJob.email.queue,
+    })
+    expect(job.lockedBy).toEqual('test-process')
+  })
+
+  scenario('locks the job with a current timestamp', async (scenario) => {
+    const adapter = new PrismaAdapter({ db })
+    const job = await adapter.find({
+      processName: 'test-process',
+      maxRuntime: 1000,
+      queue: scenario.backgroundJob.email.queue,
+    })
+    expect(job.lockedAt).toEqual(new Date())
   })
 })

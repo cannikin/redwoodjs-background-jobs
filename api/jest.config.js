@@ -3,6 +3,7 @@
 const config = {
   rootDir: '../',
   preset: '@redwoodjs/testing/config/jest/api',
+  testPathIgnorePatterns: ['.scenarios.[jt]s'],
 }
 
 module.exports = config
