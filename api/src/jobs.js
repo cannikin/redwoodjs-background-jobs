@@ -101,10 +101,8 @@ const getWorkerConfig = (numWorkers) => {
   return workers
 }
 
-const startWorkers = ({ workerConfig, isDetached, workoff = false }) => {
+const startWorkers = ({ workerConfig, detach = false, workoff = false }) => {
   logger.warn(`Starting ${workerConfig.length} worker(s)...`)
-
-  const processes = []
 
   return workerConfig.map(([queue, id], i) => {
     // list of args to send to the forked worker script
@@ -122,17 +120,16 @@ const startWorkers = ({ workerConfig, isDetached, workoff = false }) => {
 
     // fork the worker process
     const worker = fork('api/dist/worker.js', workerArgs, {
-      detached: isDetached,
-      stdio: isDetached ? 'ignore' : 'inherit',
+      detached: detach,
+      stdio: detach ? 'ignore' : 'inherit',
     })
 
-    if (isDetached) {
+    if (detach) {
       worker.unref()
     } else {
       // children stay attached so watch for their exit
       worker.on('exit', (code) => {
         logger.info(`[${worker.title}] Exited with code ${code}`)
-        processes.splice(processes.indexOf(worker), 1)
       })
     }
 
@@ -158,7 +155,7 @@ const signalSetup = (workers) => {
     logger.info(message)
 
     workers.forEach((worker) => {
-      sigtermCount > 1 ? worker.kill() : worker.kill('SIGINT')
+      sigtermCount > 1 ? worker.kill('SIGTERM') : worker.kill('SIGINT')
     })
   })
 }
@@ -234,28 +231,26 @@ const clearQueue = () => {
 }
 
 const main = async () => {
-  const { numWorkers, command, isDetached } = parseArgs()
+  const { numWorkers, command } = parseArgs()
   const workerConfig = getWorkerConfig(numWorkers)
 
   logger.warn(`Starting RedwoodJob Runner at ${new Date().toISOString()}...`)
 
   switch (command) {
     case 'start':
-      startWorkers({ workerConfig, isDetatched: true })
+      startWorkers({ workerConfig, detach: true })
       exitWithDetachNotice()
       break
     case 'restart':
-      stopWorkers()
-      startWorkers({ workerConfig, isDetached })
+      await stopWorkers()
+      startWorkers({ workerConfig, detach: true })
       exitWithDetachNotice()
       break
     case 'work':
-      signalSetup(startWorkers({ workerConfig, isDetatched: false }))
+      signalSetup(startWorkers({ workerConfig }))
       break
     case 'workoff':
-      signalSetup(
-        startWorkers({ workerConfig, isDetatched: false, workoff: true })
-      )
+      signalSetup(startWorkers({ workerConfig, workoff: true }))
       break
     case 'stop':
       await stopWorkers({ workerConfig, signal: 2 })
