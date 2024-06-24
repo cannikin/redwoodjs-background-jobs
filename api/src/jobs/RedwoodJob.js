@@ -22,7 +22,7 @@ export class RedwoodJob {
   static adapter
 
   // Set via the static `config` method
-  static logger
+  static logger = console
 
   // Configure all jobs to use a specific adapter
   static config(options) {
@@ -76,7 +76,10 @@ export class RedwoodJob {
   //   const job = RedwoodJob
   //   const scheduleDetails = job.performLater('foo', 'bar')
   performLater(...args) {
-    this.#log({ level: 'info', message: `scheduling`, args })
+    this.logger.info(
+      this.payload(args),
+      `[RedwoodJob] Scheduling ${this.constructor.name}`
+    )
 
     return this.#schedule(args)
   }
@@ -84,7 +87,10 @@ export class RedwoodJob {
   // Instance method to runs the job immediately in the current process
   //   const result = RedwoodJob.performNow('foo', 'bar')
   async performNow(...args) {
-    this.#log({ level: 'info', message: `running now`, args })
+    this.logger.info(
+      this.payload(args),
+      `[RedwoodJob] Running ${this.constructor.name} now`
+    )
 
     try {
       return await this.perform(...args)
@@ -103,6 +109,21 @@ export class RedwoodJob {
   // Must be implemented by the subclass
   perform() {
     throw new PerformNotImplementedError()
+  }
+
+  // Returns data sent to the adapter for scheduling
+  payload(args) {
+    return {
+      handler: this.constructor.name,
+      args,
+      runAt: this.runAt,
+      queue: this.queue,
+      priority: this.priority,
+    }
+  }
+
+  get logger() {
+    return this.#options?.logger || this.constructor.logger
   }
 
   // Determines the name of the queue
@@ -159,34 +180,6 @@ export class RedwoodJob {
     return this.#options
   }
 
-  // Private, returns the payload that will be sent to the adapter for scheduling
-  #payloadWithArgs(args) {
-    return {
-      handler: this.constructor.name,
-      args,
-      runAt: this.runAt,
-      queue: this.queue,
-      priority: this.priority,
-    }
-  }
-
-  // Private, logs the payload and a standard formatted message.
-  // `message` can be text or an error object. If error object, the options are
-  // set to the error itself. If `message` is just text, and args are present,
-  // it builds the payload with the args. If no args then options is an empty
-  // Object.
-  #log({ level, message, error, args }) {
-    if (this.constructor.logger) {
-      if (error) {
-        this.constructor.logger.error(error)
-      } else if (message) {
-        this.constructor.logger[level](
-          `[${this.constructor.name}] ${message} ${args ? ': ' + JSON.stringify(this.#payloadWithArgs(args)) : ''}`
-        )
-      }
-    }
-  }
-
   // Private, schedules a job with the appropriate adapter, returns whatever
   // the adapter returns in response to a successful schedule.
   async #schedule(args) {
@@ -195,12 +188,10 @@ export class RedwoodJob {
     }
 
     try {
-      return await this.constructor.adapter.schedule(
-        this.#payloadWithArgs(args)
-      )
+      return await this.constructor.adapter.schedule(this.payload(args))
     } catch (e) {
       throw new SchedulingError(
-        `[${this.constructor.name}] exception when scheduling job`,
+        `[RedwoodJob] Exception when scheduling ${this.constructor.name}`,
         e
       )
     }

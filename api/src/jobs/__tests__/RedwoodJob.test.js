@@ -296,7 +296,14 @@ describe('instance performLater()', () => {
     await new TestJob().performLater('foo', 'bar')
 
     expect(spy).toHaveBeenCalledWith(
-      '[TestJob] scheduling : {"handler":"TestJob","args":["foo","bar"],"runAt":"2024-01-01T00:00:00.000Z","queue":"default","priority":50}'
+      {
+        args: ['foo', 'bar'],
+        handler: 'TestJob',
+        priority: 50,
+        queue: 'default',
+        runAt: new Date(),
+      },
+      '[RedwoodJob] Scheduling TestJob'
     )
   })
 
@@ -355,7 +362,9 @@ describe('instance performLater()', () => {
       await new TestJob().performLater('foo', 'bar')
     } catch (e) {
       expect(e).toBeInstanceOf(errors.SchedulingError)
-      expect(e.message).toEqual('[TestJob] exception when scheduling job')
+      expect(e.message).toEqual(
+        '[RedwoodJob] Exception when scheduling TestJob'
+      )
       expect(e.original_error.message).toEqual('Could not schedule')
     }
   })
@@ -410,7 +419,14 @@ describe('instance performNow()', () => {
     await new TestJob().performNow('foo', 'bar')
 
     expect(spy).toHaveBeenCalledWith(
-      '[TestJob] running now : {"handler":"TestJob","args":["foo","bar"],"runAt":"2024-01-01T00:00:00.000Z","queue":"default","priority":50}'
+      {
+        args: ['foo', 'bar'],
+        handler: 'TestJob',
+        priority: 50,
+        queue: 'default',
+        runAt: new Date(),
+      },
+      '[RedwoodJob] Running TestJob now'
     )
   })
 
