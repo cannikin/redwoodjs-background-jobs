@@ -215,10 +215,16 @@ const stopWorkers = async ({ workerConfig, signal = 2 }) => {
       logger.info(
         `Stopping worker ${workerTitle} with process id ${processId}...`
       )
+
       if (process.platform === 'win32') {
         execSync(`taskkill /pid ${processId} /f`)
       } else {
         execSync(`kill -${signal} ${processId}`)
+      }
+
+      // wait for the process to actually exit before going to next iteration
+      while (await findProcessId(workerTitle)) {
+        await new Promise((resolve) => setTimeout(resolve, 250))
       }
     } else {
       logger.warn(`No worker found with title ${workerTitle}`)
@@ -242,7 +248,7 @@ const main = async () => {
       exitWithDetachNotice()
       break
     case 'restart':
-      await stopWorkers()
+      await stopWorkers({ workerConfig, signal: 2 })
       startWorkers({ workerConfig, detach: true })
       exitWithDetachNotice()
       break
