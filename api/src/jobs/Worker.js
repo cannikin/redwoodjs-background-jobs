@@ -1,22 +1,22 @@
 // Used by the job runner to find the next job to run and invoke the Executor
 
-import { DEFAULT_QUEUE } from 'src/jobs/RedwoodJob'
-
 import { AdapterRequiredError } from './errors'
 import { Executor } from './Executor'
 
 export const DEFAULT_WAIT_TIME = 5000 // 5 seconds
 export const DEFAULT_MAX_RUNTIME = 60 * 60 * 4 * 1000 // 4 hours
-export const DEFAULT_PROCESS_NAME_PREFIX = 'rw-job-worker'
 
 export class Worker {
   constructor(options) {
     this.options = options
     this.adapter = options?.adapter
-    this.queue = options?.queue || DEFAULT_QUEUE
     this.logger = options?.logger || console
-    this.processName =
-      options?.processName || `${DEFAULT_PROCESS_NAME_PREFIX}.${process.pid}`
+
+    // used to set the `lockedBy` field in the database
+    this.processName = options?.processName || process.title
+
+    // if not given a queue name then will work on jobs in any queue
+    this.queue = options?.queue || null
 
     // the maximum amount of time to let a job run
     this.maxRuntime =

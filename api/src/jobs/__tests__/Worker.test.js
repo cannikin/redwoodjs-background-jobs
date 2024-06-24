@@ -1,12 +1,6 @@
 import * as errors from '../errors'
 import { Executor } from '../Executor'
-import { DEFAULT_QUEUE } from '../RedwoodJob'
-import {
-  Worker,
-  DEFAULT_MAX_RUNTIME,
-  DEFAULT_WAIT_TIME,
-  DEFAULT_PROCESS_NAME_PREFIX,
-} from '../Worker'
+import { Worker, DEFAULT_MAX_RUNTIME, DEFAULT_WAIT_TIME } from '../Worker'
 
 jest.mock('../Executor')
 
@@ -34,11 +28,11 @@ describe('constructor', () => {
     expect(worker.queue).toEqual('queue')
   })
 
-  test('sets default queue if not provided', () => {
+  test('queue will be null if no queue specified', () => {
     const options = { adapter: 'adapter' }
     const worker = new Worker(options)
 
-    expect(worker.queue).toEqual(DEFAULT_QUEUE)
+    expect(worker.queue).toBeNull()
   })
 
   test('extracts processName from options to variable', () => {
@@ -52,8 +46,7 @@ describe('constructor', () => {
     const options = { adapter: 'adapter' }
     const worker = new Worker(options)
 
-    expect(worker.processName).toContain(DEFAULT_PROCESS_NAME_PREFIX)
-    expect(worker.processName).toMatch(/\.\d+$/)
+    expect(worker.processName).not.toBeUndefined()
   })
 
   test('extracts maxRuntime from options to variable', () => {
@@ -117,9 +110,21 @@ describe('constructor', () => {
   })
 })
 
+const originalConsoleDebug = console.debug
+
 describe('run', () => {
+  beforeAll(() => {
+    // hide console.debug output during test run
+    console.debug = jest.fn()
+  })
+
   afterEach(() => {
     jest.resetAllMocks()
+  })
+
+  afterAll(() => {
+    // reenable console.debug output during test run
+    console.debug = originalConsoleDebug
   })
 
   test('tries to find a job', async () => {
