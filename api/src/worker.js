@@ -73,7 +73,10 @@ worker.run().then(() => {
 // workers will exit gracefully by setting `forever` to `false` which will tell
 // it not to pick up a new job when done with the current one
 process.on('SIGINT', () => {
-  logger.info({ worker: process.title }, `SIGINT received, finishing work...`)
+  logger.warn(
+    { worker: process.title },
+    `SIGINT received at ${new Date().toISOString()}, finishing work...`
+  )
   worker.forever = false
 })
 
@@ -81,6 +84,9 @@ process.on('SIGINT', () => {
 // instead in which case we exit immediately no matter what state the worker is
 // in
 process.on('SIGTERM', () => {
-  logger.info({ worker: process.title }, `SIGTERM received, exiting now!`)
+  logger.info(
+    { worker: process.title },
+    `SIGTERM received at ${new Date().toISOString()}, exiting now!`
+  )
   process.exit(0)
 })
