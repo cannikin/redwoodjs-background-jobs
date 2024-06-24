@@ -104,7 +104,7 @@ export class PrismaAdapter extends BaseAdapter {
     const where = `
       (
         (
-          queue = '${queue}' AND
+          ${queue ? `queue = '${queue}' AND` : ''}
           runAt <= ${new Date().getTime()} AND (
             lockedAt IS NULL OR
             lockedAt < ${new Date(new Date() - maxRuntime).getTime()}
