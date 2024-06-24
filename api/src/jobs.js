@@ -203,31 +203,28 @@ const findProcessId = async (proc) => {
 }
 
 // TODO add support for stopping with SIGTERM or SIGKILL?
-const stopWorkers = async ({ workerConfig, signal = 2 }) => {
+const stopWorkers = async ({ workerConfig, signal = 'SIGINT' }) => {
   logger.warn(
-    `Stopping ${workerConfig.length} worker(s) gracefully (SIGINT)...`
+    `Stopping ${workerConfig.length} worker(s) gracefully (${signal})...`
   )
 
   for (const [queue, id] of workerConfig) {
     const workerTitle = `rw-job-worker${queue ? `.${queue}` : ''}.${id}`
     const processId = await findProcessId(workerTitle)
-    if (processId) {
-      logger.info(
-        `Stopping worker ${workerTitle} with process id ${processId}...`
-      )
 
-      if (process.platform === 'win32') {
-        execSync(`taskkill /pid ${processId} /f`)
-      } else {
-        execSync(`kill -${signal} ${processId}`)
-      }
-
-      // wait for the process to actually exit before going to next iteration
-      while (await findProcessId(workerTitle)) {
-        await new Promise((resolve) => setTimeout(resolve, 250))
-      }
-    } else {
+    if (!processId) {
       logger.warn(`No worker found with title ${workerTitle}`)
+      continue
+    }
+
+    logger.info(
+      `Stopping worker ${workerTitle} with process id ${processId}...`
+    )
+    process.kill(processId, signal)
+
+    // wait for the process to actually exit before going to next iteration
+    while (await findProcessId(workerTitle)) {
+      await new Promise((resolve) => setTimeout(resolve, 250))
     }
   }
 }
@@ -259,7 +256,7 @@ const main = async () => {
       signalSetup(startWorkers({ workerConfig, workoff: true }))
       break
     case 'stop':
-      await stopWorkers({ workerConfig, signal: 2 })
+      await stopWorkers({ workerConfig, signal: 'SIGINT' })
       break
     case 'clear':
       clearQueue()
