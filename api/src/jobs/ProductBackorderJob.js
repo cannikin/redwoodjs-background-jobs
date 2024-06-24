@@ -8,7 +8,9 @@ export class ProductBackorderJob extends RedwoodJob {
     this.logger.info(
       `Checking product ${productID} for backorders (delaying ${wait}ms)...`
     )
+
     await delay(wait)
+
     this.logger.info(`Emails sent!`)
   }
 }
