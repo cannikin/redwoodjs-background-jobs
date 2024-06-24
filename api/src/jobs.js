@@ -205,8 +205,11 @@ const findProcessId = async (proc) => {
   })
 }
 
-const stopWorkers = async (workerConfig) => {
-  logger.warn(`Stopping ${workerConfig.length} worker(s)...`)
+// TODO add support for stopping with SIGTERM or SIGKILL?
+const stopWorkers = async ({ workerConfig, signal = 2 }) => {
+  logger.warn(
+    `Stopping ${workerConfig.length} worker(s) gracefully (SIGINT)...`
+  )
 
   for (const [queue, id] of workerConfig) {
     const workerTitle = `rw-job-worker${queue ? `.${queue}` : ''}.${id}`
@@ -218,7 +221,7 @@ const stopWorkers = async (workerConfig) => {
       if (process.platform === 'win32') {
         execSync(`taskkill /pid ${processId} /f`)
       } else {
-        execSync(`kill -2 ${processId}`)
+        execSync(`kill -${signal} ${processId}`)
       }
     } else {
       logger.warn(`No worker found with title ${workerTitle}`)
@@ -255,7 +258,7 @@ const main = async () => {
       )
       break
     case 'stop':
-      await stopWorkers(workerConfig)
+      await stopWorkers({ workerConfig, signal: 2 })
       break
     case 'clear':
       clearQueue()
