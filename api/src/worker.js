@@ -46,7 +46,10 @@ if (argv.q) {
 }
 process.title = title
 
-logger.info({ worker: process.title }, `Starting Worker...`)
+logger.info(
+  { worker: process.title },
+  `Starting work at ${new Date().toISOString()}...`
+)
 
 const worker = new Worker({
   adapter: new PrismaAdapter({ db }),
