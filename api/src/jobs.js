@@ -6,7 +6,11 @@ import { hideBin } from 'yargs/helpers'
 import yargs from 'yargs/yargs'
 
 import { loadEnvFiles } from '@redwoodjs/cli/dist/lib/loadEnvFiles'
+
+import { logger } from './lib/logger.js'
 loadEnvFiles()
+
+process.title = 'rw-job-runner'
 
 const argv = yargs(hideBin(process.argv))
   .usage(
@@ -64,48 +68,52 @@ const argv = yargs(hideBin(process.argv))
 const command = argv._[0]
 const shouldDetachWorkers = ['start', 'restart'].includes(command)
 
-// Are we working off a number of workers or number of named queues?
-let workerCount = 1
-let namedWorkers = []
-if (['start', 'restart'].includes(command)) {
-  if (argv.n.includes(':')) {
-    const workers = argv.n.split(',')
-    workers.forEach((count) => {
-      const [queue, num] = count.split(':')
-      for (let i = 0; i < parseInt(num); i++) {
-        namedWorkers.push([queue, i])
-      }
-    })
-    workerCount = namedWorkers.length
-  } else {
-    workerCount = parseInt(argv.n)
-  }
+// Builds up an array of arrays, with queue name and id:
+//   `-n default:2,email:1` => [ ['default', 0], ['default', 1], ['email', 0] ]
+// If only given a number of workers then queue name is an empty string:
+//   `-n 2` => [ ['', 0], ['', 1] ]
+let workers = []
+
+// default to one worker for commands that don't specify
+if (!argv.n) {
+  argv.n = '1'
 }
 
-const workers = []
+// if only a number was given, convert it to a nameless worker: `2` => `:2`
+if (!isNaN(parseInt(argv.n))) {
+  argv.n = `:${argv.n}`
+}
+
+// split the queue:num pairs and build the workers array
+argv.n.split(',').forEach((count) => {
+  const [queue, num] = count.split(':')
+  for (let i = 0; i < parseInt(num); i++) {
+    workers.push([queue || null, i])
+  }
+})
+
+const children = []
 
 // Until we figure out Redwood's logger, use console for output
-const logger = console
+// const logger = console
 
-logger.info(
-  `[${process.title}] Starting RedwoodJob Runner at ${new Date().toISOString()} with ${namedWorkers.length || workerCount} worker(s)...`
+logger.warn(
+  `Starting RedwoodJob Runner at ${new Date().toISOString()} with ${workers.length} worker(s)...`
 )
 
 // Create a child process for every worker
-for (let i = 0; i < workerCount; i++) {
-  const workerArgs = []
+workers.forEach(([queue, id], i) => {
+  // list of args to send to the forked worker script
+  const workerArgs = ['-i', id]
 
-  // workoff mode?
-  if (argv._[0] === 'workoff') {
-    workerArgs.push('-o')
+  // add the queue name if present
+  if (queue) {
+    workerArgs.push('-q', queue)
   }
 
-  // working on named queues?
-  if (namedWorkers.length) {
-    workerArgs.push('-q', namedWorkers[i][0])
-    workerArgs.push('-i', namedWorkers[i][1])
-  } else {
-    workerArgs.push('-i', i)
+  // are we in workoff mode?
+  if (argv._[0] === 'workoff') {
+    workerArgs.push('-o')
   }
 
   // fork the worker process
@@ -120,16 +128,19 @@ for (let i = 0; i < workerCount; i++) {
     // children stay attached so watch for their exit
     child.on('exit', (code) => {
       logger.info(`[${process.title}] Exited with code ${code}`)
-      workers.splice(workers.indexOf(child), 1)
+      children.splice(children.indexOf(child), 1)
     })
 
     // track our array of workers so we can send them all messages
-    workers.push(child)
+    children.push(child)
   }
-}
+})
 
+// We're running in start or restart mode, so just exit this parent process
 if (shouldDetachWorkers) {
-  logger.info(`[${process.title}] Workers detached, exiting parent process...`)
+  logger.warn(
+    `Workers detached, exiting parent process at ${new Date().toISOString()}.`
+  )
   process.exit(0)
 }
 
@@ -147,9 +158,9 @@ process.on('SIGINT', () => {
     message = 'SIGINT received again, exiting immediately...'
   }
 
-  logger.info(`[${process.title}]`, message)
+  logger.info(message)
 
-  workers.forEach((worker) => {
+  children.forEach((worker) => {
     sigtermCount > 1 ? worker.kill() : worker.kill('SIGINT')
   })
 })
