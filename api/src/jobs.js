@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { fork } from 'node:child_process'
+import { fork, exec, execSync } from 'node:child_process'
 
 import { hideBin } from 'yargs/helpers'
 import yargs from 'yargs/yargs'
@@ -170,15 +170,67 @@ const exitWithDetachNotice = () => {
   process.exit(0)
 }
 
-const stopWorkers = ({ workerConfig }) => {
+const findProcessId = async (proc) => {
+  return new Promise(function (resolve, reject) {
+    const plat = process.platform
+    const cmd =
+      plat === 'win32'
+        ? 'tasklist'
+        : plat === 'darwin'
+          ? 'ps -ax | grep ' + proc
+          : plat === 'linux'
+            ? 'ps -A'
+            : ''
+    if (cmd === '' || proc === '') {
+      resolve(false)
+    }
+    exec(cmd, function (err, stdout, _stderr) {
+      if (err) {
+        reject(err)
+      }
+
+      const list = stdout.trim().split('\n')
+      const matches = list.filter((line) => {
+        if (plat == 'darwin' || plat == 'linux') {
+          return !line.match('grep')
+        }
+        return true
+      })
+      if (matches.length === 0) {
+        resolve(false)
+      } else {
+        resolve(parseInt(matches[0].split(' ')[0]))
+      }
+    })
+  })
+}
+
+const stopWorkers = async (workerConfig) => {
   logger.warn(`Stopping ${workerConfig.length} worker(s)...`)
+
+  for (const [queue, id] of workerConfig) {
+    const workerTitle = `rw-job-worker${queue ? `.${queue}` : ''}.${id}`
+    const processId = await findProcessId(workerTitle)
+    if (processId) {
+      logger.info(
+        `Stopping worker ${workerTitle} with process id ${processId}...`
+      )
+      if (process.platform === 'win32') {
+        execSync(`taskkill /pid ${processId} /f`)
+      } else {
+        execSync(`kill -2 ${processId}`)
+      }
+    } else {
+      logger.warn(`No worker found with title ${workerTitle}`)
+    }
+  }
 }
 
 const clearQueue = () => {
   logger.warn(`Clearing job queue...`)
 }
 
-const main = () => {
+const main = async () => {
   const { numWorkers, command, isDetached } = parseArgs()
   const workerConfig = getWorkerConfig(numWorkers)
 
@@ -203,7 +255,7 @@ const main = () => {
       )
       break
     case 'stop':
-      stopWorkers(workerConfig)
+      await stopWorkers(workerConfig)
       break
     case 'clear':
       clearQueue()
