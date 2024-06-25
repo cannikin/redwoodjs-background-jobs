@@ -160,13 +160,6 @@ const signalSetup = (workers) => {
   })
 }
 
-const exitWithDetachNotice = () => {
-  logger.warn(
-    `Workers detached, exiting parent process at ${new Date().toISOString()}.`
-  )
-  process.exit(0)
-}
-
 const findProcessId = async (proc) => {
   return new Promise(function (resolve, reject) {
     const plat = process.platform
@@ -243,13 +236,11 @@ const main = async () => {
   switch (command) {
     case 'start':
       startWorkers({ workerConfig, detach: true })
-      exitWithDetachNotice()
-      break
+      return process.exit(0)
     case 'restart':
       await stopWorkers({ workerConfig, signal: 2 })
       startWorkers({ workerConfig, detach: true })
-      exitWithDetachNotice()
-      break
+      return process.exit(0)
     case 'work':
       signalSetup(startWorkers({ workerConfig }))
       break
