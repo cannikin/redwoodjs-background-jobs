@@ -6,9 +6,8 @@ import yargs from 'yargs/yargs'
 import { loadEnvFiles } from '@redwoodjs/cli/dist/lib/loadEnvFiles'
 loadEnvFiles()
 
-import { PrismaAdapter } from './jobs/PrismaAdapter'
 import { Worker } from './jobs/Worker'
-import { db } from './lib/db'
+import { adapter } from './lib/jobs'
 import { logger } from './lib/logger.js'
 
 const TITLE_PREFIX = `rw-job-worker`
@@ -89,7 +88,7 @@ const main = async () => {
   )
 
   const worker = new Worker({
-    adapter: new PrismaAdapter({ db }),
+    adapter,
     processName: process.title,
     logger,
     queue,
