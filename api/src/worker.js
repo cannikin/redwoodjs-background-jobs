@@ -20,7 +20,7 @@ const argv = yargs(hideBin(process.argv))
     alias: 'id',
     type: 'number',
     description: 'The worker ID',
-    demandOption: true,
+    default: 0,
   })
   .option('q', {
     alias: 'queue',
@@ -32,6 +32,12 @@ const argv = yargs(hideBin(process.argv))
     type: 'boolean',
     default: false,
     description: 'Work off all jobs in the queue and exit',
+  })
+  .option('c', {
+    alias: 'clear',
+    type: 'boolean',
+    default: false,
+    description: 'Remove all jobs in the queue and exit',
   })
   .help().argv
 
@@ -51,12 +57,15 @@ logger.info(
   `Starting work at ${new Date().toISOString()}...`
 )
 
+// A worker actually does stuff, so start it turning command line flags into
+// args
 const worker = new Worker({
   adapter: new PrismaAdapter({ db }),
   processName: process.title,
   logger,
   queue: argv.queue,
   workoff: argv.workoff,
+  clear: argv.clear,
 })
 
 // run() normally loops forever, but if it does stop (because `worker.forever`
