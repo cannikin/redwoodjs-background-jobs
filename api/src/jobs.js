@@ -106,16 +106,16 @@ const startWorkers = ({ workerConfig, detach = false, workoff = false }) => {
 
   return workerConfig.map(([queue, id], i) => {
     // list of args to send to the forked worker script
-    const workerArgs = ['-i', id]
+    const workerArgs = ['--id', id]
 
     // add the queue name if present
     if (queue) {
-      workerArgs.push('-q', queue)
+      workerArgs.push('--queue', queue)
     }
 
     // are we in workoff mode?
     if (workoff) {
-      workerArgs.push('-o')
+      workerArgs.push('--workoff')
     }
 
     // fork the worker process
