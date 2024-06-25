@@ -27,8 +27,6 @@ export class Executor {
     this.logger.info(...parts)
   }
 
-  // Actually instantiate the job class and call `perform()` on it, passing in
-  // any args
   async perform(job) {
     this.#log('Started', job)
 
