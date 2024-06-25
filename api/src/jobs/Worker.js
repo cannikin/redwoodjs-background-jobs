@@ -12,6 +12,9 @@ export class Worker {
     this.adapter = options?.adapter
     this.logger = options?.logger || console
 
+    // if true, will clear the queue of all jobs and then exit
+    this.clear = options?.clear || false
+
     // used to set the `lockedBy` field in the database
     this.processName = options?.processName || process.title
 
@@ -50,7 +53,19 @@ export class Worker {
   // Workers run forever unless:
   // `this.forever` to false (loop only runs once, then exits)
   // `this.workoff` is true (run all jobs in the queue, then exits)
-  async run() {
+  run() {
+    if (this.clear) {
+      return this.#clearQueue()
+    } else {
+      return this.#work()
+    }
+  }
+
+  async #clearQueue() {
+    return await this.adapter.clear()
+  }
+
+  async #work() {
     do {
       this.lastCheckTime = new Date()
 
