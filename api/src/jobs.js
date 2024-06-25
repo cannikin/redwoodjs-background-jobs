@@ -2,9 +2,10 @@
 
 import { fork, exec } from 'node:child_process'
 
-import { loadEnvFiles } from '@e/cli/dist/lib/loadEnvFiles'
 import { hideBin } from 'yargs/helpers'
 import yargs from 'yargs/yargs'
+
+import { loadEnvFiles } from '@redwoodjs/cli/dist/lib/loadEnvFiles'
 
 import { logger } from './lib/logger.js'
 loadEnvFiles()
