@@ -230,7 +230,8 @@ const stopWorkers = async ({ workerConfig, signal = 'SIGINT' }) => {
 }
 
 const clearQueue = () => {
-  logger.warn(`Clearing job queue...`)
+  logger.warn(`Starting worker to clear job queue...`)
+  fork('api/dist/worker.js', ['--clear'])
 }
 
 const main = async () => {
