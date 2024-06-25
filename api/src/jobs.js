@@ -12,8 +12,8 @@ loadEnvFiles()
 
 process.title = 'rw-job-runner'
 
-const parseArgs = () => {
-  const argv = yargs(hideBin(process.argv))
+const parseArgs = (argv) => {
+  const parsed = yargs(hideBin(argv))
     .usage(
       'Starts the RedwoodJob runner to process background jobs\n\nUsage: $0 <command> [options]'
     )
@@ -70,10 +70,10 @@ const parseArgs = () => {
     )
     .help().argv
 
-  return { numWorkers: argv.n, command: argv._[0] }
+  return { numWorkers: parsed.n, command: parsed._[0] }
 }
 
-const getWorkerConfig = (numWorkers) => {
+const buildWorkerConfig = (numWorkers) => {
   // Builds up an array of arrays, with queue name and id:
   //   `-n default:2,email:1` => [ ['default', 0], ['default', 1], ['email', 0] ]
   // If only given a number of workers then queue name is an empty string:
@@ -228,8 +228,8 @@ const clearQueue = () => {
 }
 
 const main = async () => {
-  const { numWorkers, command } = parseArgs()
-  const workerConfig = getWorkerConfig(numWorkers)
+  const { numWorkers, command } = parseArgs(process.argv)
+  const workerConfig = buildWorkerConfig(numWorkers)
 
   logger.warn(`Starting RedwoodJob Runner at ${new Date().toISOString()}...`)
 
@@ -242,17 +242,13 @@ const main = async () => {
       startWorkers({ workerConfig, detach: true })
       return process.exit(0)
     case 'work':
-      signalSetup(startWorkers({ workerConfig }))
-      break
+      return signalSetup(startWorkers({ workerConfig }))
     case 'workoff':
-      signalSetup(startWorkers({ workerConfig, workoff: true }))
-      break
+      return signalSetup(startWorkers({ workerConfig, workoff: true }))
     case 'stop':
-      await stopWorkers({ workerConfig, signal: 'SIGINT' })
-      break
+      return await stopWorkers({ workerConfig, signal: 'SIGINT' })
     case 'clear':
-      clearQueue()
-      break
+      return clearQueue()
   }
 }
 
