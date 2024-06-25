@@ -21,6 +21,10 @@ export class BaseAdapter {
     throw new NotImplementedError('find')
   }
 
+  clear() {
+    throw new NotImplementedError('clear')
+  }
+
   success() {
     throw new NotImplementedError('success')
   }

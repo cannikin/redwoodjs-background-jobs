@@ -100,6 +100,10 @@ export class PrismaAdapter extends BaseAdapter {
     })
   }
 
+  clear() {
+    return this.accessor.deleteMany()
+  }
+
   async #sqliteFind({ processName, maxRuntime, queue }) {
     const where = `
       (
