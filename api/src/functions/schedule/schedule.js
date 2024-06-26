@@ -8,11 +8,7 @@ console.info(jobs)
 export const handler = async (event: APIGatewayEvent, _context: Context) => {
   logger.info(`${event.httpMethod} ${event.path}: jobs function`)
 
-  if (event.queryStringParameters?.run) {
-    jobs.productBackorder.performNow(Math.round(Math.random() * 500))
-  } else {
-    jobs.productBackorder.performLater(Math.round(Math.random() * 500))
-  }
+  jobs.productBackorder.performLater(Math.round(Math.random() * 500))
 
   return {
     statusCode: 200,
@@ -20,7 +16,7 @@ export const handler = async (event: APIGatewayEvent, _context: Context) => {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      data: `ProductBackorderJob ${event.queryStringParameters?.run ? 'running' : 'scheduled'}`,
+      data: `ProductBackorderJob scheduled`,
     }),
   }
 }
