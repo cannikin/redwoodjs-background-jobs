@@ -184,7 +184,7 @@ describe('find()', () => {
     const job = await adapter.find({
       processName: 'test',
       maxRuntime: 1000,
-      queue: 'default',
+      queue: 'foobar',
     })
     expect(job).toBeNull()
   })
@@ -230,5 +230,116 @@ describe('find()', () => {
       queue: scenario.backgroundJob.email.queue,
     })
     expect(job.lockedAt).toEqual(new Date())
+  })
+})
+
+describe('success()', () => {
+  scenario('deletes the job from the DB', async (scenario) => {
+    const adapter = new PrismaAdapter({ db })
+    const job = await adapter.success(scenario.backgroundJob.email)
+    const dbJob = await db.backgroundJob.findFirst({
+      where: { id: job.id },
+    })
+
+    expect(dbJob).toBeNull()
+  })
+})
+
+describe('failure()', () => {
+  scenario('clears the lock fields', async (scenario) => {
+    const adapter = new PrismaAdapter({ db })
+    await adapter.failure(
+      scenario.backgroundJob.multipleAttempts,
+      new Error('test error')
+    )
+    const dbJob = await db.backgroundJob.findFirst({
+      where: { id: scenario.backgroundJob.multipleAttempts.id },
+    })
+
+    expect(dbJob.lockedAt).toBeNull()
+    expect(dbJob.lockedBy).toBeNull()
+  })
+
+  scenario(
+    'reschedules the job at a designated backoff time',
+    async (scenario) => {
+      const adapter = new PrismaAdapter({ db })
+      await adapter.failure(
+        scenario.backgroundJob.multipleAttempts,
+        new Error('test error')
+      )
+      const dbJob = await db.backgroundJob.findFirst({
+        where: { id: scenario.backgroundJob.multipleAttempts.id },
+      })
+
+      expect(dbJob.runAt).toEqual(
+        new Date(
+          new Date().getTime() +
+            1000 * scenario.backgroundJob.multipleAttempts.attempts ** 4
+        )
+      )
+    }
+  )
+
+  scenario('records the error', async (scenario) => {
+    const adapter = new PrismaAdapter({ db })
+    await adapter.failure(
+      scenario.backgroundJob.multipleAttempts,
+      new Error('test error')
+    )
+    const dbJob = await db.backgroundJob.findFirst({
+      where: { id: scenario.backgroundJob.multipleAttempts.id },
+    })
+
+    expect(dbJob.lastError).toContain('test error\n\n')
+  })
+
+  scenario(
+    'marks the job as failed if max attempts reached',
+    async (scenario) => {
+      const adapter = new PrismaAdapter({ db })
+      await adapter.failure(
+        scenario.backgroundJob.maxAttempts,
+        new Error('test error')
+      )
+      const dbJob = await db.backgroundJob.findFirst({
+        where: { id: scenario.backgroundJob.maxAttempts.id },
+      })
+
+      expect(dbJob.failedAt).toEqual(new Date())
+    }
+  )
+
+  scenario('nullifies runtAt if max attempts reached', async (scenario) => {
+    const adapter = new PrismaAdapter({ db })
+    await adapter.failure(
+      scenario.backgroundJob.maxAttempts,
+      new Error('test error')
+    )
+    const dbJob = await db.backgroundJob.findFirst({
+      where: { id: scenario.backgroundJob.maxAttempts.id },
+    })
+
+    expect(dbJob.runAt).toBeNull()
+  })
+})
+
+describe('clear()', () => {
+  scenario('deletes all jobs from the DB', async () => {
+    const adapter = new PrismaAdapter({ db })
+    await adapter.clear()
+    const jobCount = await db.backgroundJob.count()
+
+    expect(jobCount).toEqual(0)
+  })
+})
+
+describe('backoffMilliseconds()', () => {
+  test('returns the number of milliseconds to wait for the next run', () => {
+    expect(new PrismaAdapter({ db }).backoffMilliseconds(0)).toEqual(0)
+    expect(new PrismaAdapter({ db }).backoffMilliseconds(1)).toEqual(1000)
+    expect(new PrismaAdapter({ db }).backoffMilliseconds(2)).toEqual(16000)
+    expect(new PrismaAdapter({ db }).backoffMilliseconds(3)).toEqual(81000)
+    expect(new PrismaAdapter({ db }).backoffMilliseconds(20)).toEqual(160000000)
   })
 })
