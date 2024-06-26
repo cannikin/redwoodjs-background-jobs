@@ -179,6 +179,8 @@ describe('schedule()', () => {
 })
 
 describe('find()', () => {
+  // TODO add more tests for all the various WHERE conditions when finding a job
+
   scenario('returns null if no job found', async () => {
     const adapter = new PrismaAdapter({ db })
     const job = await adapter.find({
