@@ -1,4 +1,4 @@
-import { RedwoodJob } from '../RedwoodJob'
+import { RedwoodJob } from '@redwoodjs/jobs'
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 

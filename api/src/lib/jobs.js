@@ -1,9 +1,10 @@
+import { RedwoodJob } from '@redwoodjs/jobs'
+import { PrismaAdapter } from '@redwoodjs/jobs'
+
 import { db } from 'src/lib/db'
 import { logger } from 'src/lib/logger'
 
-import { PrismaAdapter } from '../jobs/PrismaAdapter'
 import { ProductBackorderJob } from '../jobs/Product/ProductBackorderJob'
-import { RedwoodJob } from '../jobs/RedwoodJob'
 import { WelcomeEmailJob } from '../jobs/WelcomeEmailJob'
 
 export const adapter = new PrismaAdapter({ db, logger })
