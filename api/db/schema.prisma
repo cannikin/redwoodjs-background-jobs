@@ -14,7 +14,7 @@ model BackgroundJob {
   handler   String
   queue     String
   priority  Int
-  runAt     DateTime
+  runAt     DateTime?
   lockedAt  DateTime?
   lockedBy  String?
   lastError String?
