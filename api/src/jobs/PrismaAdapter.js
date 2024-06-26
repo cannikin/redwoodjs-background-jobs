@@ -74,7 +74,7 @@ export class PrismaAdapter extends BaseAdapter {
   // Finds the next job to run, locking it so that no other process can pick it
   // The act of locking a job is dependant on the DB server, so we'll run some
   // raw SQL to do it in each case—Prisma doesn't provide enough flexibility
-  // in their DSL.
+  // in their generated code to do this in a DB-agnostic way.
   find(options) {
     switch (this.options.db._activeProvider) {
       case 'sqlite':
@@ -97,7 +97,9 @@ export class PrismaAdapter extends BaseAdapter {
       data.failedAt = new Date()
       data.runAt = null
     } else {
-      data.runAt = new Date(new Date().getTime() + 1000 * job.attempts ** 4)
+      data.runAt = new Date(
+        new Date().getTime() + this.backoffMilliseconds(job.attempts)
+      )
     }
 
     return await this.accessor.update({
@@ -123,6 +125,11 @@ export class PrismaAdapter extends BaseAdapter {
     return this.accessor.deleteMany()
   }
 
+  backoffMilliseconds(attempts) {
+    return 1000 * attempts ** 4
+  }
+
+  // TODO can this be converted to use standard Prisma queries?
   async #sqliteFind({ processName, maxRuntime, queue }) {
     const where = `
       (
@@ -163,7 +170,7 @@ export class PrismaAdapter extends BaseAdapter {
 
       // Assuming the update worked, return the job
       if (updatedCount) {
-        return this.accessor.findUnique({ where: { id } })
+        return this.accessor.findFirst({ where: { id } })
       }
     }
 
