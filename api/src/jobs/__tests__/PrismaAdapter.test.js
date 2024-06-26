@@ -1,7 +1,11 @@
 import { db } from 'src/lib/db'
 
 import * as errors from '../errors'
-import { PrismaAdapter, DEFAULT_MODEL_NAME } from '../PrismaAdapter'
+import {
+  PrismaAdapter,
+  DEFAULT_MODEL_NAME,
+  DEFAULT_MAX_ATTEMPTS,
+} from '../PrismaAdapter'
 
 jest.useFakeTimers().setSystemTime(new Date('2024-01-01'))
 
@@ -80,6 +84,18 @@ describe('constructor', () => {
     const adapter = new PrismaAdapter({ db })
 
     expect(adapter.provider).toEqual('sqlite')
+  })
+
+  test('defaults this.maxAttempts', () => {
+    const adapter = new PrismaAdapter({ db })
+
+    expect(adapter.maxAttempts).toEqual(DEFAULT_MAX_ATTEMPTS)
+  })
+
+  test('can manually set this.maxAttempts', () => {
+    const adapter = new PrismaAdapter({ db, maxAttempts: 10 })
+
+    expect(adapter.maxAttempts).toEqual(10)
   })
 })
 
