@@ -31,6 +31,7 @@ import { BaseAdapter } from './BaseAdapter'
 import { ModelNameError } from './errors'
 
 export const DEFAULT_MODEL_NAME = 'BackgroundJob'
+export const DEFAULT_MAX_ATTEMPTS = 24
 
 export class PrismaAdapter extends BaseAdapter {
   constructor(options) {
@@ -66,6 +67,8 @@ export class PrismaAdapter extends BaseAdapter {
 
     // the database provider type: 'sqlite' | 'postgresql' | 'mysql'
     this.provider = options.db._activeProvider
+
+    this.maxAttempts = options?.maxAttempts || DEFAULT_MAX_ATTEMPTS
   }
 
   // Finds the next job to run, locking it so that no other process can pick it
