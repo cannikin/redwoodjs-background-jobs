@@ -83,11 +83,27 @@ export class PrismaAdapter extends BaseAdapter {
   }
 
   success(job) {
-    console.info('Marking job as succeeded', job.id)
+    return this.accessor.delete({ where: { id: job.id } })
   }
 
-  failure(job, error) {
-    console.info('Marking job as failed', job.id, error)
+  async failure(job, error) {
+    const data = {
+      lockedAt: null,
+      lockedBy: null,
+      lastError: `${error.message}\n\n${error.stack}`,
+    }
+
+    if (job.attempts >= this.maxAttempts) {
+      data.failedAt = new Date()
+      data.runAt = null
+    } else {
+      data.runAt = new Date(new Date().getTime() + 1000 * job.attempts ** 4)
+    }
+
+    return await this.accessor.update({
+      where: { id: job.id },
+      data,
+    })
   }
 
   // Schedules a job by creating a new record in a `BackgroundJob` table
