@@ -1,11 +1,7 @@
-import type { APIGatewayEvent, Context } from 'aws-lambda'
-
 import { jobs } from 'src/lib/jobs'
 import { logger } from 'src/lib/logger'
 
-console.info(jobs)
-
-export const handler = async (event: APIGatewayEvent, _context: Context) => {
+export const handler = async (event, _context) => {
   logger.info(`${event.httpMethod} ${event.path}: jobs function`)
 
   jobs.productBackorder.performLater(Math.round(Math.random() * 500))
