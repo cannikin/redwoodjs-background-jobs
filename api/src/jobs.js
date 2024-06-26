@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 
+// Coordinates the worker processes: running attached in [work] mode or
+// detaching in [start] mode.
+
 import { fork, exec } from 'node:child_process'
 
 import { hideBin } from 'yargs/helpers'
@@ -128,9 +131,7 @@ const startWorkers = ({ workerConfig, detach = false, workoff = false }) => {
       worker.unref()
     } else {
       // children stay attached so watch for their exit
-      worker.on('exit', (code) => {
-        logger.info(`[${worker.title}] Exited with code ${code}`)
-      })
+      worker.on('exit', (_code) => {})
     }
 
     return worker
