@@ -91,3 +91,9 @@ export class JobRequiredError extends RedwoodJobError {
     super('`job` is required to perform a job')
   }
 }
+
+export class JobNotFoundError extends RedwoodJobError {
+  constructor(name) {
+    super(`Job \`${name}\` not found in the filesystem`)
+  }
+}
