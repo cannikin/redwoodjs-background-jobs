@@ -163,11 +163,7 @@ export class PrismaAdapter extends BaseAdapter {
 
       // Assuming the update worked, return the job
       if (updatedCount) {
-        const job = await this.db.$queryRawUnsafe(`
-            SELECT *
-            FROM   ${this.tableName}
-            WHERE  id = ${id};`)
-        return job[0]
+        return this.accessor.findUnique({ where: { id } })
       }
     }
 
