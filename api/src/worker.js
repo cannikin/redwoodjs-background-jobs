@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+// The process that actually starts an instance of Worker to process jobs.
+
 import { hideBin } from 'yargs/helpers'
 import yargs from 'yargs/yargs'
 
