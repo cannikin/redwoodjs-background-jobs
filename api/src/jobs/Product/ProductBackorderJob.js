@@ -11,8 +11,6 @@ export class ProductBackorderJob extends RedwoodJob {
 
     await delay(wait)
 
-    throw new Error('Could not send emails')
-
     this.logger.info(`Emails sent!`)
   }
 }
