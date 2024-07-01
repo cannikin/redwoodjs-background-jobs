@@ -1,10 +1,7 @@
-import { jobs } from 'src/lib/jobs'
-import { logger } from 'src/lib/logger'
+import { WelcomeEmailJob } from 'src/jobs/WelcomeEmailJob'
 
-export const handler = async (event, _context) => {
-  logger.info(`${event.httpMethod} ${event.path}: jobs function`)
-
-  jobs.welcomeEmail.performLater('john.doe@example.com')
+export const handler = async (_event, _context) => {
+  await WelcomeEmailJob.set({ wait: 300 }).performLater('john.doe@example.com')
 
   return {
     statusCode: 200,
