@@ -8,7 +8,7 @@ import { SampleJob } from '../jobs/SampleJob'
 
 export const adapter = new PrismaAdapter({ db, logger })
 
-RedwoodJob.config({ adapter: adapter, logger })
+RedwoodJob.config({ adapter, logger })
 
 export const jobs = {
   sample: new SampleJob(),
