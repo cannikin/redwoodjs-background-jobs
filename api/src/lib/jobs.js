@@ -11,5 +11,5 @@ export const adapter = new PrismaAdapter({ db, logger })
 RedwoodJob.config({ adapter: adapter, logger })
 
 export const jobs = {
-  sampleJob: new SampleJob(),
+  sample: new SampleJob(),
 }

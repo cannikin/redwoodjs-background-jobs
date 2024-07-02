@@ -1,7 +1,7 @@
 import { jobs } from 'src/lib/jobs'
 
-export const handler = async (event, _context) => {
-  jobs.productBackorder.performLater(Math.round(Math.random() * 500))
+export const handler = async (_event, _context) => {
+  jobs.sample.performLater(Math.round(Math.random() * 500))
 
   return {
     statusCode: 200,
@@ -9,7 +9,7 @@ export const handler = async (event, _context) => {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      data: `ProductBackorderJob scheduled`,
+      data: `SampleJob scheduled`,
     }),
   }
 }

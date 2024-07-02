@@ -1,3 +1,5 @@
+import { RedwoodJob } from '@redwoodjs/jobs'
+
 import { db } from 'src/lib/db'
 import { mailer } from 'src/lib/mailer'
 import { ProductBackorderEmail } from 'src/mail/ProductBackorderEmail'
