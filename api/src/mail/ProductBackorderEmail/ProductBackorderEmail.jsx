@@ -12,9 +12,7 @@ import {
   Heading,
 } from '@react-email/components'
 
-export function ProductBackorderEmail(
-  { when }: { when: string } = { when: new Date().toLocaleString() }
-) {
+export function ProductBackorderEmail({ when = new Date().toLocaleString() }) {
   return (
     <Html lang="en">
       <Head />
